@@ -1,0 +1,8 @@
+pandas
+numpy
+scikit-learn
+category_encoders
+optuna
+fastapi
+uvicorn
+streamlit

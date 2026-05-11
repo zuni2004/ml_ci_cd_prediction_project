@@ -1,0 +1,2100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Build Failure Predictor - Feature Engineering Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --accent: #3b82f6;
+            --accent-alt: #f97316;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--text);
+            line-height: 1.6;
+            min-height: 100vh;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Background animation */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(249, 115, 22, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        header {
+            background: rgba(15, 23, 42, 0.8);
+            border-bottom: 2px solid var(--accent);
+            padding: 3rem 2rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-top: 0.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin: 2rem 0;
+            flex-wrap: wrap;
+            justify-content: center;
+            position: sticky;
+            top: 120px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 1rem;
+            border-radius: 12px;
+            z-index: 50;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tabs button {
+            padding: 0.8rem 1.5rem;
+            border: 2px solid var(--border);
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .nav-tabs button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .nav-tabs button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2);
+        }
+
+        .card-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-numerical {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid #3b82f6;
+        }
+
+        .badge-nominal {
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+            border: 1px solid #f97316;
+        }
+
+        .badge-ordinal {
+            background: rgba(8, 145, 178, 0.2);
+            color: #06b6d4;
+            border: 1px solid #0891b2;
+        }
+
+        .badge-binary {
+            background: rgba(16, 185, 129, 0.2);
+            color: #6ee7b7;
+            border: 1px solid #10b981;
+        }
+
+        .badge-temporal {
+            background: rgba(168, 85, 247, 0.2);
+            color: #d8b4fe;
+            border: 1px solid #a855f7;
+        }
+
+        .badge-identifier {
+            background: rgba(229, 231, 235, 0.1);
+            color: #d1d5db;
+            border: 1px solid #9ca3af;
+        }
+
+        .feature-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1.2rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--accent);
+            transition: all 0.3s ease;
+        }
+
+        .feature-item:hover {
+            border-left-color: var(--accent-alt);
+            background: rgba(30, 41, 59, 0.8);
+        }
+
+        .feature-name {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text);
+            margin-bottom: 0.3rem;
+        }
+
+        .feature-description {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .feature-meta {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            font-size: 0.9rem;
+        }
+
+        .preprocessing-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .preprocessing-list li {
+            padding: 0.6rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            color: var(--text-muted);
+        }
+
+        .preprocessing-list li:before {
+            content: '→';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: rgba(30, 41, 59, 0.8);
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        tr:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .code-block {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            color: #a1d8ff;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 1.2rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--accent);
+            color: #60a5fa;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+            color: #fbbf24;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: var(--danger);
+            color: #fca5a5;
+        }
+
+        .workflow-step {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.5);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .step-number {
+            min-width: 50px;
+            height: 50px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .step-content h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            margin-bottom: 0.5rem;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 2rem 0;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-alt);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #ea580c;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(249, 115, 22, 0.3);
+        }
+
+        .metric {
+            text-align: center;
+            padding: 1.5rem;
+            background: rgba(30, 41, 59, 0.6);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin: 0.5rem;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .metric-value {
+            font-size: 2.5rem;
+            font-weight: 900;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .metrics-row {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .api-endpoint {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--accent);
+            margin: 1rem 0;
+            font-family: monospace;
+        }
+
+        .api-method {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: var(--success);
+            color: white;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .post-method {
+            background: var(--accent) !important;
+        }
+
+        footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-muted);
+            border-top: 1px solid var(--border);
+            margin-top: 3rem;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .nav-tabs {
+                gap: 0.5rem;
+            }
+
+            .nav-tabs button {
+                padding: 0.6rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            header {
+                padding: 2rem 1rem;
+            }
+
+            .container {
+                padding: 1rem;
+            }
+        }
+
+        .expand-toggle {
+            cursor: pointer;
+            user-select: none;
+            color: var(--accent);
+        }
+
+        .expandable {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .expandable.expanded {
+            max-height: 1000px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">⚡ CI/CD BUILD FAILURE PREDICTOR</div>
+        <p class="tagline">Machine Learning for Pre-Build Gates | REST API Ready</p>
+    </header>
+
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-btn active" data-tab="overview">📊 Overview</button>
+            <button class="nav-btn" data-tab="features">🔍 Features</button>
+            <button class="nav-btn" data-tab="preprocessing">⚙️ Preprocessing</button>
+            <button class="nav-btn" data-tab="api">🚀 API Guide</button>
+            <button class="nav-btn" data-tab="workflow">🔄 Workflow</button>
+            <button class="nav-btn" data-tab="cheatsheet">📋 Quick Ref</button>
+        </div>
+
+        <!-- OVERVIEW SECTION -->
+        <section id="overview" class="section active">
+            <div class="card">
+                <div class="card-title">Project Overview</div>
+                <p style="margin-bottom: 1rem;">This project predicts CI/CD build failures before execution using commit metadata from Travis CI and GitHub. By analyzing 62 features spanning code changes, team metrics, and historical patterns, the model enables pre-build gates to save computational resources and development time.</p>
+                
+                <div class="alert alert-info">
+                    <strong>Target Variable:</strong> <code>build_successful</code> (Binary: True=Pass, False=Fail)
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Data Scope:</strong> 62 features covering GitHub metadata, Travis CI logs, code metrics, and repository statistics
+                </div>
+
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: var(--text);">Dataset Statistics</h3>
+                <div class="metrics-row">
+                    <div class="metric">
+                        <div class="metric-value">62</div>
+                        <div class="metric-label">Features</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">2011</div>
+                        <div class="metric-label">Build Records</div>
+                    </div>
+                    <div class="metric">
+                        <div class="metric-value">~15</div>
+                        <div class="metric-label">Avg Jobs/Build</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Use Cases</div>
+                <ul class="preprocessing-list" style="list-style: none;">
+                    <li style="margin-bottom: 1rem;">🎯 <strong>Pre-Build Gates:</strong> Reject high-risk commits before expensive CI runs</li>
+                    <li style="margin-bottom: 1rem;">📊 <strong>Resource Optimization:</strong> Allocate CI resources to likely-to-pass builds</li>
+                    <li style="margin-bottom: 1rem;">🔔 <strong>Developer Feedback:</strong> Alert developers about code quality issues early</li>
+                    <li style="margin-bottom: 1rem;">📈 <strong>Team Insights:</strong> Identify patterns causing build failures</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- FEATURES SECTION -->
+        <section id="features" class="section">
+            <div class="card">
+                <div class="card-title">Feature Catalog (62 Total)</div>
+                <p style="margin-bottom: 1.5rem; color: var(--text-muted);">Complete breakdown of all features with type classification and preprocessing recommendations.</p>
+            </div>
+
+            <!-- BUILD METADATA -->
+            <div class="card">
+                <div class="card-title">🏗️ Build Metadata Features (9)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">tr_build_id</div>
+                    <div class="feature-description">Unique identifier for each Travis CI build</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Pure identifier, no predictive value
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_status</div>
+                    <div class="feature-description">Build outcome (passed/failed)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--warning);">KEEP</span> - Validate against target variable
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_duration</div>
+                    <div class="feature-description">Total build execution time in seconds</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - StandardScaler or MinMaxScaler
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_build_number</div>
+                    <div class="feature-description">Sequential build number in the project</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - StandardScaler (captures temporal trend)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_job_id</div>
+                    <div class="feature-description">Unique job identifier within build</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Pure identifier
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_jobs</div>
+                    <div class="feature-description">Number of parallel jobs in build</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - StandardScaler (high cardinality reducer)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_lan</div>
+                    <div class="feature-description">Primary programming language detected in logs</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - ~5-10 unique languages expected
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_status</div>
+                    <div class="feature-description">Log parsing status (success/failure)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">BINARY ENCODE</span> - Label encode as 0/1
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_analyzer</div>
+                    <div class="feature-description">Type of log analyzer used</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - Limited unique values
+                    </div>
+                </div>
+            </div>
+
+            <!-- GITHUB METADATA -->
+            <div class="card">
+                <div class="card-title">🐙 GitHub & Project Metadata (14)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">gh_project_name</div>
+                    <div class="feature-description">Repository name (e.g., rails/rails)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (High Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--warning);">DROP or TARGET ENCODE</span> - Too many unique projects; use frequency encoding if kept
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_is_pr</div>
+                    <div class="feature-description">Whether build triggered by pull request</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-binary">Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">KEEP AS-IS</span> - Already binary (TRUE/FALSE)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_pr_created_at</div>
+                    <div class="feature-description">Pull request creation timestamp</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-temporal">Temporal</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">EXTRACT FEATURES</span> - hour, day_of_week, is_weekend
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_pull_req_num</div>
+                    <div class="feature-description">Pull request number</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Useful as PR maturity indicator
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_lang</div>
+                    <div class="feature-description">Repository primary language</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - Few unique languages
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_first_commit_created_at</div>
+                    <div class="feature-description">Timestamp of first commit in push</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-temporal">Temporal</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">EXTRACT FEATURES</span> - day, month, quarter
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_team_size</div>
+                    <div class="feature-description">Number of contributors in repository</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Useful team maturity signal
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_by_core_team_member</div>
+                    <div class="feature-description">Whether commit by core team member</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-binary">Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">KEEP AS-IS</span> - Strong predictor of code quality
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_num_issue_comments</div>
+                    <div class="feature-description">Comments on related issue</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Indicates issue complexity
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_num_commit_comments</div>
+                    <div class="feature-description">Comments on commit(s)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Code review activity signal
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_num_pr_comments</div>
+                    <div class="feature-description">Comments on pull request</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - PR discussion intensity
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_description_complexity</div>
+                    <div class="feature-description">Complexity of PR/commit description</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Care indicator
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_pushed_at</div>
+                    <div class="feature-description">Commit push timestamp</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-temporal">Temporal</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">EXTRACT FEATURES</span> - hour_of_day, day_of_week
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_build_started_at</div>
+                    <div class="feature-description">Build start timestamp</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-temporal">Temporal</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">EXTRACT FEATURES</span> - Build latency from push
+                    </div>
+                </div>
+            </div>
+
+            <!-- GIT COMMIT FEATURES -->
+            <div class="card">
+                <div class="card-title">📝 Git Commit Features (17)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">git_merged_with</div>
+                    <div class="feature-description">Base branch merged with</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - ~5-10 branches typically
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_branch</div>
+                    <div class="feature-description">Source branch name</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (High Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--warning);">DROP or FEATURE EXTRACT</span> - Extract is_master, is_develop
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_num_commits_in_push</div>
+                    <div class="feature-description">Number of commits in push</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Larger pushes → complex changes
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_commits_in_push</div>
+                    <div class="feature-description">Raw commit data</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier/Raw Data</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Use parsed version
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_prev_commit_resolution_status</div>
+                    <div class="feature-description">Previous commit build status</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">LABEL ENCODE</span> - Strong temporal dependency
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_prev_built_commit</div>
+                    <div class="feature-description">Previous built commit hash</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Pure hash identifier
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_prev_build</div>
+                    <div class="feature-description">Previous build ID</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Temporal sequence signal
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_all_built_commits</div>
+                    <div class="feature-description">All commits that have been built</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier/Raw Data</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Extract count instead
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_num_all_built_commits</div>
+                    <div class="feature-description">Count of all built commits</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Repository history depth
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_trigger_commit</div>
+                    <div class="feature-description">Triggering commit hash</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Pure identifier
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_virtual_merged_into</div>
+                    <div class="feature-description">Virtual merge target branch</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - Few unique values
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_original_commit</div>
+                    <div class="feature-description">Original commit before virtual merge</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Identifier
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_diff_src_churn</div>
+                    <div class="feature-description">Lines added/removed in source files</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Strong risk indicator (larger changes = higher failure risk)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">git_diff_test_churn</div>
+                    <div class="feature-description">Lines added/removed in test files</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Inverse risk (more tests = better coverage)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_num_commits_on_files_touched</div>
+                    <div class="feature-description">Historical commits on modified files</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - File maturity/complexity signal
+                    </div>
+                </div>
+            </div>
+
+            <!-- CODE DIFF FEATURES -->
+            <div class="card">
+                <div class="card-title">📊 Code Diff & Metrics (21)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_files_added</div>
+                    <div class="feature-description">Number of new files added</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Large new file additions → risk
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_files_deleted</div>
+                    <div class="feature-description">Number of files removed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Impact on existing tests
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_files_modified</div>
+                    <div class="feature-description">Number of existing files changed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Scope of change
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_tests_added</div>
+                    <div class="feature-description">New test files/cases added</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Positive: new coverage
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_tests_deleted</div>
+                    <div class="feature-description">Test files/cases removed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Caution: reduced coverage
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_src_files</div>
+                    <div class="feature-description">Count of modified source files</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Code surface area
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_doc_files</div>
+                    <div class="feature-description">Count of modified documentation files</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Low risk documentation-only changes
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_diff_other_files</div>
+                    <div class="feature-description">Other file type modifications</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Config, build files, etc.
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_sloc</div>
+                    <div class="feature-description">Source lines of code in repository</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Project size/complexity
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_test_lines_per_kloc</div>
+                    <div class="feature-description">Test code per thousand lines of source</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test coverage ratio (important!)
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_test_cases_per_kloc</div>
+                    <div class="feature-description">Test cases per thousand lines</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test density
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">gh_asserts_cases_per_kloc</div>
+                    <div class="feature-description">Assertions per thousand lines</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test assertion density
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEST EXECUTION FEATURES -->
+            <div class="card">
+                <div class="card-title">✅ Test Execution Features (14)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_frameworks</div>
+                    <div class="feature-description">Testing frameworks detected (rspec, pytest, etc.)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-nominal">Nominal (Low Card.)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">ONE-HOT ENCODE</span> - ~10-15 frameworks
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_bool_tests_ran</div>
+                    <div class="feature-description">Whether tests executed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-binary">Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">KEEP AS-IS</span> - Critical signal
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_bool_tests_failed</div>
+                    <div class="feature-description">Whether tests failed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-binary">Binary</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">KEEP AS-IS</span> - Primary failure indicator
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_num_tests_ok</div>
+                    <div class="feature-description">Number of passed tests</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test suite size
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_num_tests_failed</div>
+                    <div class="feature-description">Number of failed tests</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Failure severity
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_num_tests_run</div>
+                    <div class="feature-description">Total tests executed</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test coverage extent
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_num_tests_skipped</div>
+                    <div class="feature-description">Tests skipped/disabled</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Discrete)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Indicates incomplete testing
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_tests_failed</div>
+                    <div class="feature-description">List of failed tests (raw data)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-identifier">Identifier/Raw Data</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--danger);">DROP</span> - Use count instead
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_testduration</div>
+                    <div class="feature-description">Total test execution time (seconds)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Test suite complexity proxy
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_buildduration</div>
+                    <div class="feature-description">Total build duration (seconds)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8dm;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Build complexity
+                    </div>
+                </div>
+
+                <div class="feature-item">
+                    <div class="feature-name">tr_log_setup_time</div>
+                    <div class="feature-description">Time spent in setup phase</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-numerical">Numerical (Continuous)</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">SCALE</span> - Infrastructure readiness
+                    </div>
+                </div>
+            </div>
+
+            <!-- TARGET VARIABLE -->
+            <div class="card">
+                <div class="card-title">🎯 Target Variable (1)</div>
+                
+                <div class="feature-item">
+                    <div class="feature-name">build_successful</div>
+                    <div class="feature-description">Whether build passed (TRUE) or failed (FALSE)</div>
+                    <div class="feature-meta">
+                        <span class="badge badge-binary">Binary Classification</span>
+                    </div>
+                    <div style="margin-top: 0.8rem;">
+                        <strong>Action:</strong> <span style="color: var(--success);">TARGET VARIABLE</span> - No preprocessing; ensure balanced dataset
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PREPROCESSING SECTION -->
+        <section id="preprocessing" class="section">
+            <div class="card">
+                <div class="card-title">Feature Preprocessing Pipeline</div>
+                <p style="margin-bottom: 1rem;">A systematic approach to preparing your 62 features for machine learning.</p>
+                
+                <div class="alert alert-info">
+                    <strong>Recommended Tool Stack:</strong> pandas, scikit-learn, category_encoders, imblearn
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 1: Data Loading & Exploration</div>
+                <div class="code-block">
+import pandas as pd
+import numpy as np
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+
+# Load data
+df = pd.read_csv('build_data.csv')
+
+# Separate features and target
+X = df.drop('build_successful', axis=1)
+y = df['build_successful']
+
+# Check missing values
+print(X.isnull().sum())
+print(f"Class balance: {y.value_counts()}")
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 2: Drop Identifiers & Non-Predictive Features</div>
+                <div class="code-block">
+# Features to DROP (16 total)
+drop_features = [
+    'tr_build_id', 'tr_job_id', 'git_prev_built_commit',
+    'git_all_built_commits', 'git_trigger_commit',
+    'tr_original_commit', 'gh_commits_in_push',
+    'tr_log_tests_failed', 'gh_project_name'  # High cardinality
+]
+
+X = X.drop(drop_features, axis=1)
+print(f"Features after dropping: {X.shape[1]}")
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 3: Handle Missing Values</div>
+                <div class="code-block">
+# Strategy: Fill numerical with median, categorical with mode
+from sklearn.impute import SimpleImputer
+
+numerical_cols = X.select_dtypes(include=['int64', 'float64']).columns
+categorical_cols = X.select_dtypes(include=['object']).columns
+
+# Numerical imputation
+num_imputer = SimpleImputer(strategy='median')
+X[numerical_cols] = num_imputer.fit_transform(X[numerical_cols])
+
+# Categorical imputation
+cat_imputer = SimpleImputer(strategy='most_frequent')
+X[categorical_cols] = cat_imputer.fit_transform(X[categorical_cols])
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 4: Extract Temporal Features</div>
+                <div class="code-block">
+# From: gh_pushed_at, gh_build_started_at, gh_pr_created_at, gh_first_commit_created_at
+def extract_temporal_features(df, date_col):
+    """Extract hour, day_of_week, is_weekend from datetime"""
+    df[f'{date_col}_hour'] = pd.to_datetime(df[date_col]).dt.hour
+    df[f'{date_col}_dow'] = pd.to_datetime(df[date_col]).dt.dayofweek
+    df[f'{date_col}_weekend'] = (df[f'{date_col}_dow'] >= 5).astype(int)
+    return df
+
+temporal_cols = ['gh_pushed_at', 'gh_build_started_at']
+for col in temporal_cols:
+    if col in X.columns:
+        X = extract_temporal_features(X, col)
+        X = X.drop(col, axis=1)  # Drop original
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 5: Feature Encoding</div>
+                
+                <h3 style="color: var(--accent); margin: 1.5rem 0 1rem 0;">Nominal (Low Cardinality) → One-Hot Encoding</h3>
+                <div class="code-block">
+from sklearn.preprocessing import OneHotEncoder
+
+nominal_low_card = ['gh_lang', 'tr_log_lan', 'git_merged_with', 
+                     'git_branch', 'tr_virtual_merged_into']
+
+encoder_oh = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
+X_encoded_oh = encoder_oh.fit_transform(X[nominal_low_card])
+X_encoded_oh_df = pd.DataFrame(X_encoded_oh, 
+    columns=encoder_oh.get_feature_names_out(nominal_low_card))
+X = X.drop(nominal_low_card, axis=1)
+X = pd.concat([X, X_encoded_oh_df], axis=1)
+                </div>
+
+                <h3 style="color: var(--accent); margin: 1.5rem 0 1rem 0;">Binary → Label Encoding (0/1)</h3>
+                <div class="code-block">
+binary_features = ['gh_is_pr', 'gh_by_core_team_member', 
+                   'tr_log_bool_tests_ran', 'tr_log_bool_tests_failed']
+
+for col in binary_features:
+    if col in X.columns:
+        X[col] = (X[col] == True).astype(int)  # Convert TRUE/FALSE to 1/0
+                </div>
+
+                <h3 style="color: var(--accent); margin: 1.5rem 0 1rem 0;">Nominal (High Cardinality) → Frequency Encoding</h3>
+                <div class="code-block">
+from category_encoders import TargetEncoder
+
+# For tr_log_frameworks (multiple frameworks)
+high_card_features = ['tr_log_frameworks']
+
+target_encoder = TargetEncoder(cols=high_card_features)
+X[high_card_features] = target_encoder.fit_transform(X[high_card_features], y)
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 6: Numerical Scaling</div>
+                <div class="code-block">
+# Identify numerical features
+numerical_features = X.select_dtypes(include=['int64', 'float64']).columns.tolist()
+
+# StandardScaler for most features (good for tree-based & linear models)
+scaler = StandardScaler()
+X[numerical_features] = scaler.fit_transform(X[numerical_features])
+
+# Alternative: MinMaxScaler for bounded features [0,1]
+# Useful for neural networks
+minmax_scaler = MinMaxScaler()
+X[numerical_features] = minmax_scaler.fit_transform(X[numerical_features])
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Step 7: Feature Engineering (Advanced)</div>
+                
+                <h3 style="color: var(--accent); margin: 1rem 0 0.5rem 0;">Create Interaction Features</h3>
+                <div class="code-block">
+# Test coverage ratio
+X['test_to_src_ratio'] = X['git_diff_test_churn'] / (X['git_diff_src_churn'] + 1)
+
+# Code change risk
+X['total_diff_files'] = (X['gh_diff_files_added'] + 
+                         X['gh_diff_files_deleted'] + 
+                         X['gh_diff_files_modified'])
+
+# Commit complexity
+X['commit_entropy'] = -X['gh_num_commits_in_push'] * np.log(X['gh_num_commits_in_push'] + 1)
+                </div>
+
+                <h3 style="color: var(--accent); margin: 1rem 0 0.5rem 0;">Handling Class Imbalance</h3>
+                <div class="code-block">
+from imblearn.over_sampling import SMOTE
+
+smote = SMOTE(random_state=42)
+X_balanced, y_balanced = smote.fit_resample(X, y)
+
+print(f"Class distribution after SMOTE:")
+print(y_balanced.value_counts())
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Complete Pipeline Example</div>
+                <div class="code-block">
+from sklearn.pipeline import Pipeline
+from sklearn.compose import ColumnTransformer
+
+# Define transformers
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', StandardScaler(), numerical_features),
+        ('cat', OneHotEncoder(handle_unknown='ignore'), nominal_low_card),
+    ])
+
+# Create full pipeline
+from sklearn.ensemble import RandomForestClassifier
+
+pipeline = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(random_state=42))
+])
+
+# Train
+pipeline.fit(X_train, y_train)
+
+# Predict
+y_pred = pipeline.predict(X_test)
+                </div>
+            </div>
+        </section>
+
+        <!-- API SECTION -->
+        <section id="api" class="section">
+            <div class="card">
+                <div class="card-title">REST API Implementation</div>
+                <p style="margin-bottom: 1rem;">Deploy your model as a production-ready API for pre-build gates.</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">API Specification</div>
+                
+                <h3 style="color: var(--accent); margin: 1.5rem 0 1rem 0;">Endpoint: Predict Build Success</h3>
+                <div class="api-endpoint">
+                    <span class="api-method">POST</span>
+                    /api/v1/predict
+                </div>
+
+                <h3 style="color: var(--text); margin: 1.5rem 0 0.5rem 0;">Request Body</h3>
+                <div class="code-block">
+{
+  "gh_lang": "ruby",
+  "gh_team_size": 240,
+  "gh_by_core_team_member": true,
+  "git_diff_src_churn": 18,
+  "git_diff_test_churn": 30,
+  "gh_diff_files_modified": 7,
+  "gh_test_lines_per_kloc": 2031.04,
+  "tr_log_bool_tests_ran": true,
+  "tr_log_num_tests_failed": 0,
+  ...
+}
+                </div>
+
+                <h3 style="color: var(--text); margin: 1.5rem 0 0.5rem 0;">Response</h3>
+                <div class="code-block">
+{
+  "prediction": true,
+  "probability": 0.87,
+  "confidence": "HIGH",
+  "risk_score": 0.13,
+  "key_factors": [
+    {"factor": "test_coverage_high", "impact": "positive"},
+    {"factor": "code_churn_moderate", "impact": "neutral"}
+  ],
+  "processing_time_ms": 12
+}
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Python/Flask Implementation</div>
+                <div class="code-block">
+from flask import Flask, request, jsonify
+import joblib
+import numpy as np
+from datetime import datetime
+
+app = Flask(__name__)
+
+# Load trained model and preprocessing pipeline
+model = joblib.load('model.pkl')
+preprocessor = joblib.load('preprocessor.pkl')
+
+@app.route('/api/v1/predict', methods=['POST'])
+def predict():
+    """Predict build success before execution"""
+    try:
+        data = request.json
+        
+        # Create feature vector
+        features = preprocess_input(data)
+        
+        # Make prediction
+        prediction = model.predict(features)[0]
+        probability = model.predict_proba(features)[0]
+        
+        # Get feature importance for explanation
+        importances = get_feature_importance(features, model)
+        
+        response = {
+            'prediction': bool(prediction),
+            'probability': float(probability[1]),
+            'confidence': 'HIGH' if probability[1] > 0.8 else 'MEDIUM' if probability[1] > 0.6 else 'LOW',
+            'risk_score': float(probability[0]),
+            'key_factors': [
+                {
+                    'factor': feat_name,
+                    'impact': 'positive' if imp > 0 else 'negative',
+                    'magnitude': float(abs(imp))
+                }
+                for feat_name, imp in importances[:5]
+            ],
+            'processing_time_ms': int((datetime.now() - start).total_seconds() * 1000),
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        
+        return jsonify(response), 200
+    
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+def preprocess_input(data):
+    """Apply same preprocessing as training"""
+    # Convert to DataFrame
+    df = pd.DataFrame([data])
+    
+    # Apply feature engineering
+    df = apply_feature_engineering(df)
+    
+    # Apply preprocessing pipeline
+    features = preprocessor.transform(df)
+    
+    return features
+
+if __name__ == '__main__':
+    app.run(debug=False, port=5000)
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Integration with CI/CD Pipeline</div>
+                <h3 style="color: var(--text); margin: 1rem 0 0.5rem 0;">GitHub Actions Example</h3>
+                <div class="code-block">
+name: Pre-Build Quality Gate
+
+on: [pull_request]
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - name: Extract commit metadata
+        id: metadata
+        run: |
+          # Gather features from commit
+          echo "COMMIT_CHURN=$(git diff HEAD~1 --shortstat)"
+          echo "FILES_CHANGED=$(git diff HEAD~1 --name-only | wc -l)"
+      
+      - name: Call build failure predictor API
+        id: prediction
+        run: |
+          curl -X POST https://predictor.example.com/api/v1/predict \
+            -H "Content-Type: application/json" \
+            -d @- << 'EOF'
+          {
+            "gh_lang": "${{ env.LANGUAGE }}",
+            "gh_team_size": ${{ env.TEAM_SIZE }},
+            "git_diff_src_churn": ${{ steps.metadata.outputs.COMMIT_CHURN }},
+            ...
+          }
+          EOF
+      
+      - name: Evaluate prediction
+        if: ${{ steps.prediction.outputs.prediction == 'false' }}
+        run: |
+          echo "⚠️ High risk of build failure detected"
+          echo "Risk Score: ${{ steps.prediction.outputs.risk_score }}"
+          exit 1  # Block PR merge
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Docker Deployment</div>
+                <div class="code-block">
+# Dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY model.pkl .
+COPY app.py .
+
+EXPOSE 5000
+
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app:app"]
+                </div>
+            </div>
+        </section>
+
+        <!-- WORKFLOW SECTION -->
+        <section id="workflow" class="section">
+            <div class="card">
+                <div class="card-title">Complete Project Workflow</div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h3>Data Collection & Cleaning</h3>
+                    <p>Load CSV, handle missing values, drop identifiers</p>
+                    <p style="font-size: 0.9rem;"><strong>Output:</strong> Clean 46-feature dataset</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h3>Exploratory Data Analysis</h3>
+                    <p>Analyze distributions, correlations, class balance</p>
+                    <p style="font-size: 0.9rem;"><strong>Tools:</strong> pandas, matplotlib, seaborn</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h3>Feature Engineering</h3>
+                    <p>Extract temporal features, create interactions, compute ratios</p>
+                    <p style="font-size: 0.9rem;"><strong>Example:</strong> test_to_src_ratio, commit_entropy</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h3>Preprocessing & Encoding</h3>
+                    <p>Scale numericals, encode categories, handle imbalance</p>
+                    <p style="font-size: 0.9rem;"><strong>Techniques:</strong> StandardScaler, OneHotEncoder, SMOTE</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h3>Model Training</h3>
+                    <p>Train ensemble models (Random Forest, XGBoost, LightGBM)</p>
+                    <p style="font-size: 0.9rem;"><strong>Validation:</strong> 5-fold cross-validation</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h3>Model Evaluation</h3>
+                    <p>Evaluate on test set: Precision, Recall, F1, ROC-AUC</p>
+                    <p style="font-size: 0.9rem;"><strong>Focus:</strong> High recall (catch failures) + precision (reduce false alarms)</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">7</div>
+                <div class="step-content">
+                    <h3>API Development</h3>
+                    <p>Wrap model in Flask/FastAPI REST endpoint</p>
+                    <p style="font-size: 0.9rem;"><strong>Features:</strong> Prediction, confidence, explainability</p>
+                </div>
+            </div>
+
+            <div class="workflow-step">
+                <div class="step-number">8</div>
+                <div class="step-content">
+                    <h3>Deployment & Monitoring</h3>
+                    <p>Deploy via Docker, monitor prediction accuracy, retrain monthly</p>
+                    <p style="font-size: 0.9rem;"><strong>Tools:</strong> Docker, Kubernetes, MLflow</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- CHEATSHEET SECTION -->
+        <section id="cheatsheet" class="section">
+            <div class="card">
+                <div class="card-title">Quick Reference Cheatsheet</div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Feature Preprocessing Decision Tree</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Feature Type</th>
+                            <th>Cardinality</th>
+                            <th>Primary Action</th>
+                            <th>Secondary Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Numerical (Continuous)</strong></td>
+                            <td>N/A</td>
+                            <td>StandardScaler</td>
+                            <td>Check for outliers</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Numerical (Discrete)</strong></td>
+                            <td>N/A</td>
+                            <td>StandardScaler</td>
+                            <td>Consider log transform if skewed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Binary</strong></td>
+                            <td>2</td>
+                            <td>Keep as 0/1</td>
+                            <td>No scaling needed</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nominal</strong></td>
+                            <td>&lt; 10</td>
+                            <td>One-Hot Encode</td>
+                            <td>Remove one category (multicollinearity)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nominal</strong></td>
+                            <td>10-100</td>
+                            <td>Frequency Encode</td>
+                            <td>Target encode if many categories</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Nominal</strong></td>
+                            <td>&gt; 100</td>
+                            <td>DROP</td>
+                            <td>Aggregate categories or feature engineer</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Temporal</strong></td>
+                            <td>N/A</td>
+                            <td>Extract hour/day/week</td>
+                            <td>Drop original timestamp</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Identifier</strong></td>
+                            <td>&gt; 1000</td>
+                            <td>DROP</td>
+                            <td>No predictive power</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Feature Statistics Summary</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Count</th>
+                            <th>Action: DROP</th>
+                            <th>Action: KEEP</th>
+                            <th>Final Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Identifiers</strong></td>
+                            <td>9</td>
+                            <td style="color: var(--danger);">9</td>
+                            <td>0</td>
+                            <td>0</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Build Metadata</strong></td>
+                            <td>9</td>
+                            <td style="color: var(--warning);">3</td>
+                            <td style="color: var(--success);">6</td>
+                            <td>6</td>
+                        </tr>
+                        <tr>
+                            <td><strong>GitHub Metadata</strong></td>
+                            <td>14</td>
+                            <td style="color: var(--warning);">1</td>
+                            <td style="color: var(--success);">13</td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Git Commit</strong></td>
+                            <td>17</td>
+                            <td style="color: var(--warning);">5</td>
+                            <td style="color: var(--success);">12</td>
+                            <td>12</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Code Diff</strong></td>
+                            <td>21</td>
+                            <td>0</td>
+                            <td style="color: var(--success);">21</td>
+                            <td>21</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test Execution</strong></td>
+                            <td>14</td>
+                            <td style="color: var(--warning);">1</td>
+                            <td style="color: var(--success);">13</td>
+                            <td>13</td>
+                        </tr>
+                        <tr style="background: rgba(59, 130, 246, 0.2); font-weight: 700;">
+                            <td><strong>TOTAL</strong></td>
+                            <td>62</td>
+                            <td style="color: var(--danger);">16</td>
+                            <td style="color: var(--success);">65</td>
+                            <td>46-50*</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">*After feature engineering (includes new interaction features)</p>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Python Preprocessing Template</div>
+                <div class="code-block">
+# Quick setup script
+import pandas as pd
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.impute import SimpleImputer
+from imblearn.over_sampling import SMOTE
+
+# 1. Load & explore
+df = pd.read_csv('data.csv')
+print(f"Shape: {df.shape}, Missing: {df.isnull().sum().sum()}")
+
+# 2. Drop columns
+drop_cols = ['tr_build_id', 'tr_job_id', ...]
+X = df.drop(['build_successful'] + drop_cols, axis=1)
+y = df['build_successful']
+
+# 3. Split numerical/categorical
+num_cols = X.select_dtypes(include=['int64', 'float64']).columns
+cat_cols = X.select_dtypes(include=['object']).columns
+
+# 4. Impute
+X[num_cols] = SimpleImputer(strategy='median').fit_transform(X[num_cols])
+X[cat_cols] = SimpleImputer(strategy='most_frequent').fit_transform(X[cat_cols])
+
+# 5. Encode
+X_cat_encoded = pd.get_dummies(X[cat_cols], drop_first=True)
+X = pd.concat([X[num_cols], X_cat_encoded], axis=1)
+
+# 6. Scale
+X[num_cols] = StandardScaler().fit_transform(X[num_cols])
+
+# 7. Balance
+X_balanced, y_balanced = SMOTE().fit_resample(X, y)
+
+print(f"Final shape: {X_balanced.shape}")
+print(f"Class balance: {y_balanced.value_counts()}")
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Model Selection Guide</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Model</th>
+                            <th>Pros</th>
+                            <th>Cons</th>
+                            <th>Use Case</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Logistic Regression</strong></td>
+                            <td>Fast, interpretable, baseline</td>
+                            <td>Low accuracy on complex data</td>
+                            <td>Baseline, production if latency critical</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Random Forest</strong></td>
+                            <td>Fast, robust, handles non-linearity</td>
+                            <td>Less interpretable, memory intensive</td>
+                            <td>Balanced choice for this dataset</td>
+                        </tr>
+                        <tr>
+                            <td><strong>XGBoost</strong></td>
+                            <td>High accuracy, feature importance</td>
+                            <td>Hyperparameter tuning, slower training</td>
+                            <td>Production model for best performance</td>
+                        </tr>
+                        <tr>
+                            <td><strong>LightGBM</strong></td>
+                            <td>Fast, memory efficient, high accuracy</td>
+                            <td>Less stable with small datasets</td>
+                            <td>Production if data is large</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Neural Network</strong></td>
+                            <td>High accuracy potential</td>
+                            <td>Requires tuning, black box, slow</td>
+                            <td>Only if other models plateau</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Evaluation Metrics</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Formula</th>
+                            <th>When to Use</th>
+                            <th>Target</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Accuracy</strong></td>
+                            <td>(TP+TN)/(TP+TN+FP+FN)</td>
+                            <td>Balanced classes only</td>
+                            <td>&gt; 0.85</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Precision</strong></td>
+                            <td>TP/(TP+FP)</td>
+                            <td>Minimize false alarms</td>
+                            <td>&gt; 0.80</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Recall</strong></td>
+                            <td>TP/(TP+FN)</td>
+                            <td><strong style="color: var(--accent);">← Critical for us</strong> Catch all failures</td>
+                            <td>&gt; 0.90</td>
+                        </tr>
+                        <tr>
+                            <td><strong>F1-Score</strong></td>
+                            <td>2*(Precision*Recall)/(Precision+Recall)</td>
+                            <td>Balance precision & recall</td>
+                            <td>&gt; 0.85</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ROC-AUC</strong></td>
+                            <td>Area under curve</td>
+                            <td>Overall discrimination ability</td>
+                            <td>&gt; 0.88</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-title">Common Pitfalls & Solutions</div>
+                
+                <div class="alert alert-warning">
+                    <strong>Pitfall:</strong> Data leakage (using test-time features like test results for training)
+                    <br><strong>Solution:</strong> Use only commit metadata available BEFORE execution
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Pitfall:</strong> Imbalanced classes (95% pass, 5% fail)
+                    <br><strong>Solution:</strong> Use SMOTE, class_weight, or stratified splitting
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Pitfall:</strong> Not scaling numerical features before tree-based models
+                    <br><strong>Solution:</strong> Always scale for consistency, even if not required mathematically
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Pitfall:</strong> Fitting scaler/encoder on full dataset
+                    <br><strong>Solution:</strong> Fit on train set only, transform test set with train parameters
+                </div>
+
+                <div class="alert alert-warning">
+                    <strong>Pitfall:</strong> Using high-cardinality identifiers as features
+                    <br><strong>Solution:</strong> Always drop identifiers and hash-based features
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>CI/CD Build Failure Predictor Documentation</p>
+        <p style="margin-top: 1rem; color: var(--text-muted); font-size: 0.9rem;">
+            Built with machine learning best practices. Ready for production deployment. 
+            <br>Questions? Check the preprocessing section or review feature engineering examples.
+        </p>
+    </footer>
+
+    <script>
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all buttons
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                
+                // Remove active class from all sections
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding section
+                this.classList.add('active');
+                const tabName = this.getAttribute('data-tab');
+                document.getElementById(tabName).classList.add('active');
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+    </script>
+</body>
+</html>
