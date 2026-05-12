@@ -1,0 +1,23 @@
+artifact_path: file:D:/Downloads/ml_ci_cd_prediction_project-main (1)/ml_ci_cd_prediction_project-main/mlruns/1/models/m-34659bdc2e0d4ee48c9675de7dff26df/artifacts
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.13.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.8.0
+    skops_trusted_types: null
+mlflow_version: 3.11.1
+model_id: m-34659bdc2e0d4ee48c9675de7dff26df
+model_size_bytes: 9181378
+model_uuid: m-34659bdc2e0d4ee48c9675de7dff26df
+prompts: null
+run_id: 71bb63b51e00483fa0d1f06fc06091e1
+utc_time_created: '2026-05-12 10:51:57.804597'
