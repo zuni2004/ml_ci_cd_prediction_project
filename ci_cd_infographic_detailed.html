@@ -1,0 +1,1693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Build Failure Predictor - Complete Documentation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e293b;
+            --tertiary: #334155;
+            --accent: #3b82f6;
+            --accent-alt: #f97316;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(15, 23, 42, 0.98);
+            border-bottom: 2px solid var(--accent);
+            padding: 2.5rem 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .version-badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            font-size: 0.8rem;
+            color: #60a5fa;
+            margin-top: 1rem;
+        }
+
+        /* Navigation */
+        .nav-container {
+            background: rgba(15, 23, 42, 0.95);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 180px;
+            z-index: 99;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-tabs {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            overflow-x: auto;
+        }
+
+        .nav-tabs button {
+            padding: 0.6rem 1.2rem;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+        }
+
+        .nav-tabs button:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .nav-tabs button.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Sections */
+        .section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Cards */
+        .card {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card-subtitle {
+            font-size: 1rem;
+            font-weight: 700;
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+            color: var(--accent-alt);
+        }
+
+        /* Grids */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .stat-box {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            text-align: center;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .stat-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--success);
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1.2rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .feature-name {
+            font-weight: 700;
+            color: #60a5fa;
+            margin-bottom: 0.3rem;
+            font-size: 0.95rem;
+        }
+
+        .feature-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .feature-type {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            font-size: 0.7rem;
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border-radius: 3px;
+            margin-top: 0.5rem;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+
+        th {
+            background: rgba(15, 23, 42, 0.8);
+            padding: 0.8rem;
+            text-align: left;
+            border-bottom: 2px solid var(--accent);
+            color: var(--accent);
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        td {
+            padding: 0.8rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:hover {
+            background: rgba(59, 130, 246, 0.08);
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #60a5fa;
+        }
+
+        .code-label {
+            color: var(--accent-alt);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--accent);
+            color: #60a5fa;
+        }
+
+        .alert-warning {
+            background: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--warning);
+            color: #fcd34d;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--success);
+            color: #6ee7b7;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .badge-model {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid var(--accent);
+        }
+
+        .badge-feature {
+            background: rgba(249, 115, 22, 0.2);
+            color: #fb923c;
+            border: 1px solid var(--accent-alt);
+        }
+
+        .badge-tech {
+            background: rgba(8, 145, 178, 0.2);
+            color: #06b6d4;
+            border: 1px solid #0891b2;
+        }
+
+        /* Step List */
+        .step-list {
+            margin: 1rem 0;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: rgba(15, 23, 42, 0.5);
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 35px;
+            height: 35px;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+            border-radius: 50%;
+            font-weight: 800;
+            color: white;
+        }
+
+        .step-content h4 {
+            margin-bottom: 0.3rem;
+            color: var(--text);
+        }
+
+        .step-content p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* Workflow Diagram */
+        .workflow-box {
+            display: inline-block;
+            background: rgba(59, 130, 246, 0.15);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            color: #60a5fa;
+        }
+
+        .workflow-arrow {
+            display: inline-block;
+            color: var(--accent-alt);
+            font-size: 1.5rem;
+            margin: 0 0.5rem;
+            vertical-align: middle;
+        }
+
+        /* Two Column Layout */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (max-width: 900px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .nav-tabs {
+                gap: 0.3rem;
+            }
+
+            .nav-tabs button {
+                padding: 0.5rem 0.8rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-top: 3rem;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.8);
+        }
+
+        h3 {
+            color: var(--text);
+            margin-top: 1.5rem;
+            margin-bottom: 0.8rem;
+        }
+
+        h4 {
+            color: var(--accent-alt);
+            margin-top: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        li {
+            margin-bottom: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+
+        strong {
+            color: var(--text);
+            font-weight: 700;
+        }
+
+        .highlight {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .copy-btn {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            background: rgba(59, 130, 246, 0.2);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            color: #60a5fa;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+            float: right;
+        }
+
+        .copy-btn:hover {
+            background: rgba(59, 130, 246, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo">⚡ CI/CD Build Failure Predictor</div>
+        <div class="tagline">Decision Tree Model — Complete Documentation & API Reference</div>
+        <div class="version-badge">v1.0 | Decision Tree (Bayesian Optimized)</div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <button class="nav-btn active" data-tab="overview">📊 Overview</button>
+            <button class="nav-btn" data-tab="features">🔍 Features</button>
+            <button class="nav-btn" data-tab="preprocessing">⚙️ Preprocessing</button>
+            <button class="nav-btn" data-tab="api">🚀 API Guide</button>
+            <button class="nav-btn" data-tab="workflow">🔄 Workflow</button>
+            <button class="nav-btn" data-tab="quick-ref">📋 Quick Ref</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- OVERVIEW SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="overview" class="section active">
+            <div class="card">
+                <div class="card-title">📊 Project Overview</div>
+                <p>
+                    The <strong>CI/CD Build Failure Predictor</strong> is a machine learning system that predicts 
+                    whether a continuous integration build will succeed or fail before execution. By analyzing commit 
+                    metadata, code churn, and team metrics, the model enables teams to identify high-risk builds and 
+                    take preventive action, reducing wasted computational resources and accelerating development velocity.
+                </p>
+            </div>
+
+            <div class="two-column">
+                <div class="card">
+                    <div class="card-title">🎯 Model Specifications</div>
+                    <table>
+                        <tr>
+                            <td><strong>Algorithm</strong></td>
+                            <td>Decision Tree Classifier</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Framework</strong></td>
+                            <td>scikit-learn 1.0+</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Optimization</strong></td>
+                            <td>Bayesian Search (Optuna)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Trials</strong></td>
+                            <td>15 hyperparameter configurations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Training Data</strong></td>
+                            <td>TravisTorrent Dataset (3.7M+ builds)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Features</strong></td>
+                            <td>44 engineered features</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Validation</strong></td>
+                            <td>5-fold Stratified Cross-Validation</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">📈 Performance Metrics</div>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <div class="stat-label">Accuracy</div>
+                            <div class="stat-value">94.09%</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">F1-Score</div>
+                            <div class="stat-value">0.9566</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Precision</div>
+                            <div class="stat-value">High</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Recall</div>
+                            <div class="stat-value">Strong</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">ROC-AUC</div>
+                            <div class="stat-value">0.9784</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-label">Test Set</div>
+                            <div class="stat-value">~20%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🔑 Key Advantages</div>
+                <ul>
+                    <li><strong>No Data Leakage:</strong> Uses only pre-execution metadata available before the build runs</li>
+                    <li><strong>Robust Feature Engineering:</strong> 44 features derived from 62 raw metrics with cyclic encoding for temporal patterns</li>
+                    <li><strong>Production-Ready:</strong> Optimized via Bayesian search for balance between accuracy and interpretability</li>
+                    <li><strong>Stratified Validation:</strong> Handles class imbalance with stratified k-fold cross-validation</li>
+                    <li><strong>Scalable:</strong> Trained on 3.7M+ real-world Travis CI builds from GitHub projects</li>
+                    <li><strong>Interpretable:</strong> Decision Tree provides feature importance and clear decision paths</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📦 Technology Stack</div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">ML & Data</div>
+                        <span class="badge badge-tech">scikit-learn</span>
+                        <span class="badge badge-tech">pandas</span>
+                        <span class="badge badge-tech">numpy</span>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">Optimization</div>
+                        <span class="badge badge-tech">Optuna</span>
+                        <span class="badge badge-tech">MLflow</span>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">Web Framework</div>
+                        <span class="badge badge-tech">Flask</span>
+                        <span class="badge badge-tech">Jinja2</span>
+                    </div>
+                    <div>
+                        <div style="font-weight: 700; color: var(--accent); margin-bottom: 0.5rem;">Preprocessing</div>
+                        <span class="badge badge-tech">Encoders</span>
+                        <span class="badge badge-tech">Scalers</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>💡 Use Case:</strong> Integrate with your CI/CD pipeline to get predictions before builds execute. 
+                Flag high-risk builds for review, reducing wasted resources and improving deployment reliability.
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- FEATURES SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="features" class="section">
+            <div class="card">
+                <div class="card-title">🔍 Feature Engineering (44 Features)</div>
+                <p>
+                    The model uses 44 carefully engineered features derived from 62 raw metrics in the TravisTorrent dataset.
+                    Features are categorized into 5 groups covering code changes, testing practices, team dynamics, build history, and temporal patterns.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📝 Feature Categories</div>
+                
+                <h3>1️⃣ Code Churn (Git/Commit Features) — 21 Features</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-name">git_diff_src_churn</div>
+                        <div class="feature-desc">Lines of code changed (additions + deletions) in source code</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">git_diff_files_changed</div>
+                        <div class="feature-desc">Total number of files modified in the commit</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">git_diff_tests_churn</div>
+                        <div class="feature-desc">Lines of code changed in test files</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">git_diff_test_files_changed</div>
+                        <div class="feature-desc">Number of test files modified</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">git_author_date_*</div>
+                        <div class="feature-desc">Cyclic encoding of commit timestamp (sin/cos)</div>
+                        <div class="feature-type">Temporal (Cyclic)</div>
+                    </div>
+                </div>
+
+                <h3>2️⃣ Test Execution (Test Coverage) — 13 Features</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-name">gh_test_lines_per_kloc</div>
+                        <div class="feature-desc">Test code lines per thousand lines of code (test coverage ratio)</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">gh_test_programming_language</div>
+                        <div class="feature-desc">Primary programming language used</div>
+                        <div class="feature-type">Categorical (Encoded)</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">tr_build_duration_minutes</div>
+                        <div class="feature-desc">How long the build took to complete</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                </div>
+
+                <h3>3️⃣ Team & Collaboration (Author Metrics) — 12 Features</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-name">gh_team_size</div>
+                        <div class="feature-desc">Number of developers contributing to the project</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">gh_author_commit_frequency</div>
+                        <div class="feature-desc">Average commits per author in the repository</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">gh_project_age_days</div>
+                        <div class="feature-desc">Days since the project was created</div>
+                        <div class="feature-type">Numerical</div>
+                    </div>
+                </div>
+
+                <h3>4️⃣ Build History (Previous Build Info) — Not Used (Dropped)</h3>
+                <div class="alert alert-warning">
+                    <strong>⚠️ Data Leakage Prevention:</strong> Post-run metrics (build duration, test results) 
+                    and previous build information are explicitly dropped to prevent using information that wouldn't 
+                    be available at prediction time.
+                </div>
+
+                <h3>5️⃣ Temporal Features (Cyclic Encoding) — ~10 Features</h3>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-name">commit_hour_sin / _cos</div>
+                        <div class="feature-desc">Cyclic encoding: hour of day the commit was made</div>
+                        <div class="feature-type">Temporal</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">commit_dayofweek_sin / _cos</div>
+                        <div class="feature-desc">Cyclic encoding: day of week the commit was made</div>
+                        <div class="feature-type">Temporal</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-name">commit_month_sin / _cos</div>
+                        <div class="feature-desc">Cyclic encoding: month the commit was made</div>
+                        <div class="feature-type">Temporal</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📊 Feature Statistics</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Total</th>
+                            <th>Dropped</th>
+                            <th>Used</th>
+                            <th>Final Count</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Build Metadata</strong></td>
+                            <td>17</td>
+                            <td style="color: var(--danger);">5</td>
+                            <td style="color: var(--success);">12</td>
+                            <td>12</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Code Diff</strong></td>
+                            <td>21</td>
+                            <td>0</td>
+                            <td style="color: var(--success);">21</td>
+                            <td>21</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Test Execution</strong></td>
+                            <td>14</td>
+                            <td style="color: var(--danger);">1</td>
+                            <td style="color: var(--success);">13</td>
+                            <td>13</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Temporal (New)</strong></td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td style="color: var(--success);">~10</td>
+                            <td>~10</td>
+                        </tr>
+                        <tr style="background: rgba(59, 130, 246, 0.1); font-weight: 700;">
+                            <td>TOTAL</td>
+                            <td>62</td>
+                            <td style="color: var(--danger);">6</td>
+                            <td style="color: var(--success);">56+ (engineered)</td>
+                            <td>44 (final)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p style="font-size: 0.9rem; color: var(--text-muted); margin-top: 1rem;">
+                    *Final count reduced through feature selection and dimensionality reduction (PCA, correlation analysis)
+                </p>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✓ Feature Engineering Best Practices:</strong>
+                <ul style="margin-top: 0.5rem;">
+                    <li>✓ Cyclic encoding for temporal features (sin/cos transformation)</li>
+                    <li>✓ Target encoding for high-cardinality categorical features</li>
+                    <li>✓ Min-Max normalization for numerical features [0, 1]</li>
+                    <li>✓ No data leakage (fit encoders on training set only)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- PREPROCESSING SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="preprocessing" class="section">
+            <div class="card">
+                <div class="card-title">⚙️ Data Preprocessing Pipeline</div>
+                <p>
+                    The preprocessing pipeline follows ML best practices with careful attention to preventing data leakage.
+                    All encoders and scalers are fitted on the training set only and applied consistently to test data.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">10-Step Preprocessing Pipeline</div>
+                
+                <div class="step-list">
+                    <div class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Load & Clean Data</h4>
+                            <p>Load TravisTorrent CSV (3.7M+ builds). Verify schema and initial data quality.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Handle Null Values</h4>
+                            <p>Numeric: forward/backward fill or interpolation. Categorical: mode imputation. Drop rows with >30% nulls.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Identify Feature Types</h4>
+                            <p>Separate numerical and categorical features. Detect ordinal, nominal, and binary categories.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Classify Categorical Features</h4>
+                            <p>Categorize by cardinality: Ordinal (order matters), Low-cardinality (<10 unique), High-cardinality (>10 unique).</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Extract Cyclic Features</h4>
+                            <p>Transform timestamp features to sin/cos representation to preserve cyclic nature (hour, day, month).</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">6</div>
+                        <div class="step-content">
+                            <h4>Stratified Train-Test Split</h4>
+                            <p>80/20 split preserving class distribution. Fit LabelEncoder on y_train ONLY (no leakage).</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">7</div>
+                        <div class="step-content">
+                            <h4>Encode Categorical Features</h4>
+                            <p>Ordinal → OrdinalEncoder. Low-cardinality → OneHotEncoder. High-cardinality → TargetEncoder with smoothing.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">8</div>
+                        <div class="step-content">
+                            <h4>Encode Target Variable</h4>
+                            <p>Binary target (build_successful): True/False → 1/0 using LabelEncoder fitted on training set.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">9</div>
+                        <div class="step-content">
+                            <h4>Normalize Features</h4>
+                            <p>MinMaxScaler: scale all features to [0, 1] range for consistency. Fit on training set, transform test set.</p>
+                        </div>
+                    </div>
+
+                    <div class="step-item">
+                        <div class="step-number">10</div>
+                        <div class="step-content">
+                            <h4>Save Artifacts</h4>
+                            <p>Export: train_processed.csv, test_processed.csv, all encoders/scalers as .pkl files for inference.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">⚠️ Features Dropped (Leakage Prevention)</div>
+                <p>The following features are deliberately dropped to prevent data leakage:</p>
+                <ul>
+                    <li><strong>Identifiers:</strong> tr_build_id, tr_job_id, build_number, git hashes</li>
+                    <li><strong>Post-run Metrics:</strong> tr_duration, tr_log_*_tests, test results (only available AFTER build)</li>
+                    <li><strong>Status Columns:</strong> tr_status, tr_status_* (direct encoding of target)</li>
+                    <li><strong>Log Analysis:</strong> tr_log_status, tr_log_analyzer_* (requires build completion)</li>
+                    <li><strong>Temporal:</strong> tr_previous_build info (not available at prediction time)</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🔐 Encoding Strategies</div>
+                
+                <h3>1. OrdinalEncoder (Ordinal Features)</h3>
+                <p>For features where order matters (e.g., project maturity: Early → Stable).</p>
+                <div class="code-block">
+                    <span class="code-label">Python:</span>
+from sklearn.preprocessing import OrdinalEncoder<br>
+encoder = OrdinalEncoder(handle_unknown='use_encoded_value', unknown_value=-1)<br>
+X_train_encoded = encoder.fit_transform(X_train[ordinal_cols])<br>
+X_test_encoded = encoder.transform(X_test[ordinal_cols])
+                </div>
+
+                <h3>2. OneHotEncoder (Low-Cardinality Categorical)</h3>
+                <p>For categorical features with &lt;10 unique values.</p>
+                <div class="code-block">
+                    <span class="code-label">Python:</span>
+from sklearn.preprocessing import OneHotEncoder<br>
+encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')<br>
+X_train_encoded = encoder.fit_transform(X_train[low_card_cols])<br>
+X_test_encoded = encoder.transform(X_test[low_card_cols])
+                </div>
+
+                <h3>3. TargetEncoder (High-Cardinality Categorical)</h3>
+                <p>For features with >10 unique values. Smoothing prevents overfitting to rare categories.</p>
+                <div class="code-block">
+                    <span class="code-label">Formula:</span>
+Smoothed Mean = (Category Mean × Count + Global Mean × α) / (Count + α)<br>
+where α (alpha) is the smoothing parameter (default = 1.0)
+                </div>
+
+                <h3>4. MinMaxScaler (Numerical Features)</h3>
+                <p>Normalize all numerical features to [0, 1] range.</p>
+                <div class="code-block">
+                    <span class="code-label">Python:</span>
+from sklearn.preprocessing import MinMaxScaler<br>
+scaler = MinMaxScaler()<br>
+X_train_scaled = scaler.fit_transform(X_train)<br>
+X_test_scaled = scaler.transform(X_test)
+                </div>
+
+                <h3>5. Cyclic Encoding (Temporal Features)</h3>
+                <p>Preserve periodicity of temporal features using sin/cos transformation.</p>
+                <div class="code-block">
+                    <span class="code-label">Python:</span>
+import numpy as np<br>
+# For hour of day (0-23)<br>
+df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)<br>
+df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
+                </div>
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>🔒 No Data Leakage Checklist:</strong>
+                <ul style="margin-top: 0.5rem;">
+                    <li>✓ All encoders fitted on training set ONLY</li>
+                    <li>✓ All scalers fitted on training set ONLY</li>
+                    <li>✓ Test set transformed with training parameters</li>
+                    <li>✓ Post-run metrics explicitly dropped</li>
+                    <li>✓ Identifiers and hashes removed before modeling</li>
+                    <li>✓ Stratified split preserves class distribution</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📁 Output Artifacts</div>
+                <p>The preprocessing pipeline generates these files:</p>
+                <div class="code-block">
+                    src/saved_models/<br>
+                    ├── target_label_encoder.pkl       # For encoding y values<br>
+                    ├── ordinal_encoder.pkl            # For ordinal features<br>
+                    ├── target_encoder.pkl             # For high-cardinality features<br>
+                    └── minmax_scaler.pkl              # For feature normalization<br>
+                    <br>
+                    data/processed_data/<br>
+                    ├── train_processed.csv            # 80% of data (preprocessed)<br>
+                    └── test_processed.csv             # 20% of data (preprocessed)
+                </div>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- API GUIDE SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="api" class="section">
+            <div class="card">
+                <div class="card-title">🚀 API Guide & Inference</div>
+                <p>
+                    This section covers how to use the trained model for making predictions in production environments.
+                    The model is deployed via a Flask web API with both web form and programmatic interfaces.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🌐 REST API Endpoints</div>
+
+                <h3>1. Home Page</h3>
+                <table>
+                    <tr>
+                        <td><strong>Endpoint</strong></td>
+                        <td><code>GET /</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Description</strong></td>
+                        <td>Returns the prediction form UI</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Response</strong></td>
+                        <td>HTML form (index.html)</td>
+                    </tr>
+                </table>
+
+                <h3>2. Make Prediction</h3>
+                <table>
+                    <tr>
+                        <td><strong>Endpoint</strong></td>
+                        <td><code>POST /predict</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Content-Type</strong></td>
+                        <td>application/x-www-form-urlencoded</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Required Fields</strong></td>
+                        <td>git_diff_src_churn, gh_test_lines_per_kloc, gh_team_size</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Response</strong></td>
+                        <td>HTML with prediction result (PASS/FAIL)</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📤 Request/Response Examples</div>
+
+                <h3>cURL Request</h3>
+                <div class="code-block">
+                    <span class="code-label">bash:</span>
+curl -X POST http://localhost:5000/predict \<br>
+  -d "git_diff_src_churn=50&gh_test_lines_per_kloc=200.5&gh_team_size=10"
+                </div>
+
+                <h3>Python Request</h3>
+                <div class="code-block">
+                    <span class="code-label">python:</span>
+import requests<br>
+<br>
+url = "http://localhost:5000/predict"<br>
+data = {<br>
+    "git_diff_src_churn": 50,<br>
+    "gh_test_lines_per_kloc": 200.5,<br>
+    "gh_team_size": 10<br>
+}<br>
+<br>
+response = requests.post(url, data=data)<br>
+print(response.text)  # Returns HTML with prediction
+                </div>
+
+                <h3>JavaScript Request</h3>
+                <div class="code-block">
+                    <span class="code-label">javascript:</span>
+const formData = new FormData();<br>
+formData.append('git_diff_src_churn', 50);<br>
+formData.append('gh_test_lines_per_kloc', 200.5);<br>
+formData.append('gh_team_size', 10);<br>
+<br>
+fetch('http://localhost:5000/predict', {<br>
+    method: 'POST',<br>
+    body: formData<br>
+})<br>
+.then(response => response.text())<br>
+.then(html => console.log(html));
+                </div>
+
+                <h3>Response HTML</h3>
+                <div class="code-block">
+                    <span class="code-label">html (success case):</span>
+&lt;div class="result success-msg"&gt;<br>
+    Prediction: BUILD WILL PASS ✓<br>
+&lt;/div&gt;<br>
+<br>
+<span class="code-label">html (failure case):</span><br>
+&lt;div class="result error-msg"&gt;<br>
+    Prediction: BUILD WILL FAIL ❌<br>
+&lt;/div&gt;
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🔧 Running the API Locally</div>
+
+                <h3>Installation</h3>
+                <div class="code-block">
+                    <span class="code-label">bash:</span>
+pip install -r requirements.txt
+                </div>
+
+                <h3>Start Flask Server</h3>
+                <div class="code-block">
+                    <span class="code-label">bash:</span>
+python app.py
+                </div>
+
+                <h3>Expected Output</h3>
+                <div class="code-block">
+                    <span class="code-label">console:</span>
+ * Running on http://0.0.0.0:5000<br>
+ * Press CTRL+C to quit
+                </div>
+
+                <h3>Access API</h3>
+                <p>Open your browser or API client:</p>
+                <ul>
+                    <li><strong>Web UI:</strong> http://localhost:5000/</li>
+                    <li><strong>Make Prediction:</strong> POST to http://localhost:5000/predict</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">⚙️ Input Parameters</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Range</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>git_diff_src_churn</code></td>
+                            <td>Integer</td>
+                            <td>0 - 10000+</td>
+                            <td>Total lines of code changed in source files</td>
+                        </tr>
+                        <tr>
+                            <td><code>gh_test_lines_per_kloc</code></td>
+                            <td>Float</td>
+                            <td>0.0 - 1000.0</td>
+                            <td>Test code lines per thousand lines of source code</td>
+                        </tr>
+                        <tr>
+                            <td><code>gh_team_size</code></td>
+                            <td>Integer</td>
+                            <td>1 - 500+</td>
+                            <td>Number of developers on the team</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📊 Python Inference (Programmatic)</div>
+
+                <h3>Load Model & Make Predictions</h3>
+                <div class="code-block">
+                    <span class="code-label">python:</span>
+import pickle<br>
+import numpy as np<br>
+import pandas as pd<br>
+<br>
+# Load model and preprocessing artifacts<br>
+model = pickle.load(open('src/saved_models/best_model_decision_tree.pkl', 'rb'))<br>
+scaler = pickle.load(open('src/saved_models/minmax_scaler.pkl', 'rb'))<br>
+target_encoder = pickle.load(open('src/saved_models/target_encoder.pkl', 'rb'))<br>
+label_encoder = pickle.load(open('src/saved_models/target_label_encoder.pkl', 'rb'))<br>
+<br>
+# Prepare input<br>
+raw_data = {<br>
+    'git_diff_src_churn': 50,<br>
+    'gh_test_lines_per_kloc': 200.5,<br>
+    'gh_team_size': 10<br>
+}<br>
+<br>
+# Preprocess<br>
+input_df = pd.DataFrame([raw_data])<br>
+encoded = target_encoder.transform(input_df)<br>
+scaled = scaler.transform(encoded)<br>
+<br>
+# Predict<br>
+prediction = model.predict(scaled)[0]  # 0 or 1<br>
+probability = model.predict_proba(scaled)[0]  # [P(fail), P(pass)]<br>
+<br>
+# Interpret<br>
+result_text = label_encoder.inverse_transform([prediction])[0]<br>
+confidence = max(probability)<br>
+<br>
+print(f"Result: {result_text}")<br>
+print(f"Confidence: {confidence:.1%}")<br>
+print(f"P(PASS): {probability[1]:.1%}")<br>
+print(f"P(FAIL): {probability[0]:.1%}")
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <strong>💡 Important:</strong> The API expects form data with exactly 3 fields. 
+                The preprocessing pipeline handles transformation to 44 features internally via the loaded encoders and scaler.
+            </div>
+
+            <div class="alert alert-warning">
+                <strong>⚠️ Production Deployment:</strong>
+                <ul style="margin-top: 0.5rem;">
+                    <li>Use WSGI server (Gunicorn/uWSGI) instead of Flask development server</li>
+                    <li>Add error handling and input validation</li>
+                    <li>Implement logging for predictions and model monitoring</li>
+                    <li>Cache model in memory to avoid reloading on each request</li>
+                    <li>Monitor prediction latency (target: <100ms per request)</li>
+                    <li>Retrain model monthly with fresh data</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- WORKFLOW SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="workflow" class="section">
+            <div class="card">
+                <div class="card-title">🔄 Complete Data Pipeline Workflow</div>
+                <p>
+                    This diagram shows the complete flow from raw data to production predictions,
+                    including preprocessing, training, optimization, and inference stages.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📊 Data Flow Pipeline</div>
+                <div style="text-align: center; overflow-x: auto; padding: 2rem; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin: 1rem 0;">
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 150px;">Raw CSV<br>62 Features<br>3.7M+ Builds</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Load & Clean<br>Remove nulls<br>Validate schema</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Feature Type ID<br>Numerical vs<br>Categorical</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 150px;">Cyclic Encoding<br>sin/cos for time<br>~10 features</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Train/Test Split<br>80/20<br>Stratified</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Encode Features<br>Ordinal, OneHot<br>TargetEncoder</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 150px;">Normalize<br>MinMaxScaler<br>[0, 1] range</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="background: rgba(16, 185, 129, 0.15); border-color: var(--success); width: 150px;"><strong>44 Features</strong><br>Ready for ML</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🤖 Model Training & Optimization</div>
+                <div style="text-align: center; overflow-x: auto; padding: 2rem; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin: 1rem 0;">
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 150px;">Prepared Data<br>Train Set<br>Test Set</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Optuna<br>Bayesian Search<br>15 Trials</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Hyperparameter<br>Tuning<br>max_depth, etc</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 150px;">Best Params<br>Found</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Train Decision<br>Tree Classifier<br>scikit-learn</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 150px;">Evaluate<br>5-Fold CV<br>Test Set</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="background: rgba(16, 185, 129, 0.15); border-color: var(--success); width: 150px;"><strong>94.09% Accuracy</strong><br>F1: 0.9566<br>ROC-AUC: 0.9784</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🚀 Production Inference Pipeline</div>
+                <div style="text-align: center; overflow-x: auto; padding: 2rem; background: rgba(15, 23, 42, 0.5); border-radius: 8px; margin: 1rem 0;">
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 160px;">New Build Data<br>git_diff_src_churn<br>gh_test_lines_per_kloc<br>gh_team_size</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 160px;">Load Encoders<br>Target Encoder<br>Label Encoder<br>MinMax Scaler</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 160px;">Transform<br>Categorical<br>Encode<br>Normalize</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="width: 160px;">44 Features<br>Ready</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 160px;">Load Decision<br>Tree Model<br>.pkl file</div>
+                        <div class="workflow-arrow">→</div>
+                        <div class="workflow-box" style="width: 160px;">Predict<br>Class: 0/1<br>Proba: [P(fail), P(pass)]</div>
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <div class="workflow-arrow" style="font-size: 2rem;">↓</div>
+                    </div>
+                    <div style="display: inline-block;">
+                        <div class="workflow-box" style="background: rgba(16, 185, 129, 0.15); border-color: var(--success); width: 160px;"><strong>PASS ✓</strong> or<br><strong>FAIL ❌</strong><br>+ Confidence</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📁 File Structure</div>
+                <div class="code-block">
+project/<br>
+├── src/<br>
+│   ├── data_preprocessing.py        # Preprocessing functions<br>
+│   ├── saved_models/<br>
+│   │   ├── best_model_decision_tree.pkl<br>
+│   │   ├── minmax_scaler.pkl<br>
+│   │   ├── target_encoder.pkl<br>
+│   │   └── target_label_encoder.pkl<br>
+│   └── ...<br>
+├── data/<br>
+│   ├── raw_data/<br>
+│   │   └── travistorrent_8_2_2017.csv<br>
+│   └── processed_data/<br>
+│       ├── train_processed.csv<br>
+│       └── test_processed.csv<br>
+├── main.py                         # Preprocessing orchestrator<br>
+├── model.py                        # Model training & optimization<br>
+├── app.py                          # Flask API<br>
+├── index.html                      # Web UI<br>
+├── requirements.txt<br>
+└── Dockerfile
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🔁 Key Workflow Decisions</div>
+                
+                <h3>Why Stratified Train-Test Split?</h3>
+                <p>Ensures both train and test sets have similar class distributions, preventing skewed evaluations.</p>
+
+                <h3>Why Fit Encoders on Training Data Only?</h3>
+                <p>Prevents data leakage. Test set is transformed with training parameters to simulate real-world inference.</p>
+
+                <h3>Why Cyclic Encoding for Temporal Features?</h3>
+                <p>Preserves the periodic nature of time (hour 23 is close to hour 0, not far). sin/cos representation prevents artificial discontinuities.</p>
+
+                <h3>Why Bayesian Optimization (Optuna)?</h3>
+                <p>More efficient than grid search. Learns from previous trials to intelligently sample hyperparameter space.</p>
+
+                <h3>Why Decision Tree?</h3>
+                <p>Interpretable, handles non-linearity, performs well on this dataset, faster inference than ensemble methods.</p>
+            </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <!-- QUICK REFERENCE SECTION -->
+        <!-- ════════════════════════════════════════════════════════════════ -->
+        <div id="quick-ref" class="section">
+            <div class="card">
+                <div class="card-title">📋 Quick Reference & Cheat Sheet</div>
+                <p>Quick lookup for common tasks, parameters, and troubleshooting.</p>
+            </div>
+
+            <div class="two-column">
+                <div class="card">
+                    <div class="card-subtitle">⚡ Quick Start</div>
+                    <div class="code-block">
+<span class="code-label">Install dependencies:</span>
+pip install -r requirements.txt
+
+<span class="code-label">Run preprocessing:</span>
+python main.py
+
+<span class="code-label">Train model:</span>
+python model.py
+
+<span class="code-label">Start API:</span>
+python app.py
+
+<span class="code-label">Test prediction:</span>
+curl -X POST http://localhost:5000/predict \
+  -d "git_diff_src_churn=50&\
+gh_test_lines_per_kloc=200.5&\
+gh_team_size=10"
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-subtitle">📦 Dependencies</div>
+                    <ul>
+                        <li><strong>pandas</strong> - Data manipulation</li>
+                        <li><strong>numpy</strong> - Numerical computing</li>
+                        <li><strong>scikit-learn</strong> - ML models & preprocessing</li>
+                        <li><strong>optuna</strong> - Hyperparameter optimization</li>
+                        <li><strong>mlflow</strong> - Experiment tracking</li>
+                        <li><strong>flask</strong> - Web framework</li>
+                        <li><strong>joblib</strong> - Model serialization</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🔍 Common Tasks</div>
+                
+                <h3>Make a Single Prediction</h3>
+                <div class="code-block">
+import pickle, numpy as np, pandas as pd
+model = pickle.load(open('src/saved_models/best_model_decision_tree.pkl', 'rb'))
+scaler = pickle.load(open('src/saved_models/minmax_scaler.pkl', 'rb'))
+encoder = pickle.load(open('src/saved_models/target_encoder.pkl', 'rb'))
+
+raw = {'git_diff_src_churn': 50, 'gh_test_lines_per_kloc': 200.5, 'gh_team_size': 10}
+df = pd.DataFrame([raw])
+encoded = encoder.transform(df)
+scaled = scaler.transform(encoded)
+pred = model.predict(scaled)[0]  # 0=FAIL, 1=PASS
+proba = model.predict_proba(scaled)[0]
+print(f"Prediction: {'PASS' if pred == 1 else 'FAIL'}")
+print(f"Confidence: {max(proba):.1%}")
+                </div>
+
+                <h3>Batch Predictions</h3>
+                <div class="code-block">
+X_test = pd.read_csv('data/processed_data/test_processed.csv').drop('build_successful', axis=1)
+predictions = model.predict(X_test)
+probabilities = model.predict_proba(X_test)
+pass_count = (predictions == 1).sum()
+fail_count = (predictions == 0).sum()
+print(f"Predicted: {pass_count} passes, {fail_count} failures")
+                </div>
+
+                <h3>Check Model Performance</h3>
+                <div class="code-block">
+from sklearn.metrics import accuracy_score, f1_score, roc_auc_score
+
+y_test = pd.read_csv('data/processed_data/test_processed.csv')['build_successful']
+predictions = model.predict(X_test)
+proba = model.predict_proba(X_test)[:, 1]
+
+print(f"Accuracy:  {accuracy_score(y_test, predictions):.4f}")
+print(f"F1-Score:  {f1_score(y_test, predictions):.4f}")
+print(f"ROC-AUC:   {roc_auc_score(y_test, proba):.4f}")
+                </div>
+
+                <h3>Feature Importance</h3>
+                <div class="code-block">
+import pandas as pd
+
+feature_importance = pd.DataFrame({
+    'feature': X_train.columns,
+    'importance': model.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print(feature_importance.head(10))
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🐛 Troubleshooting</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Issue</th>
+                            <th>Solution</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>FileNotFoundError: best_model_decision_tree.pkl</strong></td>
+                            <td>Run <code>python model.py</code> to train the model first</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ValueError: shapes not aligned</strong></td>
+                            <td>Ensure input features match training features (44 total after preprocessing)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Flask connection refused</strong></td>
+                            <td>Ensure Flask is running: <code>python app.py</code> and port 5000 is available</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Unexpected prediction confidence</strong></td>
+                            <td>Check that input values are in expected ranges. Verify scaler was applied.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Low accuracy on new data</strong></td>
+                            <td>Model may need retraining. Check for data drift. Ensure preprocessing is identical.</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Out of memory during training</strong></td>
+                            <td>Reduce batch size or sample data. Use <code>nrows</code> parameter to test on subset.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📊 Key Metrics at a Glance</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                            <th>Interpretation</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Accuracy</strong></td>
+                            <td style="color: var(--success);">94.09%</td>
+                            <td>Correct predictions out of total</td>
+                        </tr>
+                        <tr>
+                            <td><strong>F1-Score</strong></td>
+                            <td style="color: var(--success);">0.9566</td>
+                            <td>Harmonic mean of precision & recall</td>
+                        </tr>
+                        <tr>
+                            <td><strong>ROC-AUC</strong></td>
+                            <td style="color: var(--success);">0.9784</td>
+                            <td>Performance across thresholds</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Dataset Size</strong></td>
+                            <td>3.7M+ builds</td>
+                            <td>Training data from TravisTorrent</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Train/Test Split</strong></td>
+                            <td>80/20</td>
+                            <td>~3.0M train, ~0.7M test</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Features</strong></td>
+                            <td>44 (engineered)</td>
+                            <td>From 62 raw metrics</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">🔗 Input Parameter Ranges</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Min</th>
+                            <th>Max</th>
+                            <th>Typical</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>git_diff_src_churn</code></td>
+                            <td>0</td>
+                            <td>10000+</td>
+                            <td>100-500</td>
+                        </tr>
+                        <tr>
+                            <td><code>gh_test_lines_per_kloc</code></td>
+                            <td>0.0</td>
+                            <td>1000.0</td>
+                            <td>150-300</td>
+                        </tr>
+                        <tr>
+                            <td><code>gh_team_size</code></td>
+                            <td>1</td>
+                            <td>500+</td>
+                            <td>5-20</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card">
+                <div class="card-subtitle">📚 Resources</div>
+                <ul>
+                    <li><strong>TravisTorrent Dataset:</strong> https://archive.org/details/travistorrent_8_2_2017.csv</li>
+                    <li><strong>GitHub Repository:</strong> https://github.com/zuni2004/ml_ci_cd_prediction_project</li>
+                    <li><strong>scikit-learn Docs:</strong> https://scikit-learn.org/stable/</li>
+                    <li><strong>Optuna Framework:</strong> https://optuna.org/</li>
+                    <li><strong>MLflow Tracking:</strong> https://mlflow.org/</li>
+                </ul>
+            </div>
+
+            <div class="alert alert-success">
+                <strong>✅ Ready to Deploy!</strong> Your CI/CD Build Failure Predictor is:
+                <ul style="margin-top: 0.5rem;">
+                    <li>✓ Trained on 3.7M+ real builds</li>
+                    <li>✓ Achieving 94.09% accuracy</li>
+                    <li>✓ Optimized via Bayesian search</li>
+                    <li>✓ Ready for production use</li>
+                    <li>✓ Fully documented and referenced</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p><strong>CI/CD Build Failure Predictor</strong> — Complete Documentation</p>
+        <p style="margin-top: 1rem; color: var(--text-muted);">
+            Built with scikit-learn, Optuna, and Flask. Trained on 3.7M+ Travis CI builds from the TravisTorrent dataset.
+            <br><strong>Model:</strong> Decision Tree | <strong>Optimization:</strong> Bayesian (15 trials) | <strong>Accuracy:</strong> 94.09%
+        </p>
+        <p style="margin-top: 1.5rem; font-size: 0.8rem; color: var(--text-muted);">
+            Created: 2026 | Last Updated: May 12, 2026
+        </p>
+    </footer>
+
+    <script>
+        // Tab Navigation
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from all buttons and sections
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked button and corresponding section
+                this.classList.add('active');
+                const tabName = this.getAttribute('data-tab');
+                document.getElementById(tabName).classList.add('active');
+                
+                // Scroll to top
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        });
+
+        // Syntax highlighting for code blocks (simple)
+        document.querySelectorAll('.code-block').forEach(block => {
+            block.addEventListener('click', function() {
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(this);
+                selection.removeAllRanges();
+                selection.addRange(range);
+                document.execCommand('copy');
+            });
+        });
+    </script>
+</body>
+</html>

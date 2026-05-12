@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CI/CD Build Failure Predictor - 60s Pitch Infographic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #0a0e27;
+            --secondary: #151b3d;
+            --tertiary: #1f2749;
+            --accent: #3b82f6;
+            --accent-alt: #f97316;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --border: #334155;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, #1a1f3a 100%);
+            color: var(--text);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        /* Animated background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 15% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+                radial-gradient(circle at 85% 70%, rgba(249, 115, 22, 0.12) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 2rem;
+            animation: slideInDown 0.8s ease;
+        }
+
+        .logo {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-alt) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -1px;
+            margin-bottom: 0.3rem;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Main Grid - 2x3 Layout */
+        .infographic-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .box {
+            background: rgba(30, 41, 59, 0.7);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            backdrop-filter: blur(10px);
+            min-height: 320px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .box::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-alt), var(--success));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .box:hover {
+            border-color: var(--accent);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 48px rgba(59, 130, 246, 0.25);
+        }
+
+        .box:hover::before {
+            opacity: 1;
+        }
+
+        /* Box Header */
+        .box-title {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+        }
+
+        .box-icon {
+            font-size: 2rem;
+            filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+        }
+
+        .box-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        /* Problem Box - Special styling */
+        .box-problem {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.05) 100%);
+            border-color: rgba(239, 68, 68, 0.3);
+        }
+
+        .box-problem .box-title {
+            color: var(--danger);
+        }
+
+        .problem-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 1rem;
+            border-radius: 10px;
+            border-left: 3px solid var(--danger);
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: var(--danger);
+        }
+
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        /* Dataset Box */
+        .box-dataset {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .dataset-item {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 0.8rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent);
+            font-size: 0.95rem;
+        }
+
+        .dataset-value {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        /* Preprocessing Box */
+        .box-preprocessing {
+            background: linear-gradient(135deg, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0.05) 100%);
+            border-color: rgba(168, 85, 247, 0.3);
+        }
+
+        .box-preprocessing .box-title {
+            color: #d8b4fe;
+        }
+
+        .preprocess-step {
+            display: flex;
+            gap: 0.8rem;
+            align-items: flex-start;
+        }
+
+        .step-number {
+            min-width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: rgba(168, 85, 247, 0.3);
+            color: #d8b4fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .step-text {
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        /* Models Box */
+        .box-models {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.05) 100%);
+            border-color: rgba(16, 185, 129, 0.3);
+        }
+
+        .box-models .box-title {
+            color: var(--success);
+        }
+
+        .model-item {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 0.8rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--success);
+        }
+
+        .model-name {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 1rem;
+        }
+
+        .model-description {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.3rem;
+        }
+
+        /* Optimization Box */
+        .box-optimization {
+            background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.05) 100%);
+            border-color: rgba(249, 115, 22, 0.3);
+        }
+
+        .box-optimization .box-title {
+            color: var(--accent-alt);
+        }
+
+        .optimization-detail {
+            background: rgba(15, 23, 42, 0.5);
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 3px solid var(--accent-alt);
+        }
+
+        .detail-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .detail-value {
+            font-weight: 700;
+            color: var(--accent-alt);
+            font-size: 1.2rem;
+        }
+
+        /* Results Box - Special styling */
+        .box-results {
+            grid-column: 1 / -1;
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(16, 185, 129, 0.08) 100%);
+            border-color: rgba(16, 185, 129, 0.4);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            padding: 2.5rem;
+            align-content: center;
+        }
+
+        .result-metric {
+            text-align: center;
+            animation: slideInUp 0.8s ease backwards;
+        }
+
+        .result-metric:nth-child(1) { animation-delay: 0.1s; }
+        .result-metric:nth-child(2) { animation-delay: 0.2s; }
+        .result-metric:nth-child(3) { animation-delay: 0.3s; }
+
+        .metric-value {
+            font-size: 2.8rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--success) 0%, #34d399 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-label {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        /* Footer with key takeaway */
+        .footer-section {
+            background: rgba(30, 41, 59, 0.5);
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .footer-title {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-text {
+            color: var(--text);
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+        }
+
+        .tech-badge {
+            background: rgba(59, 130, 246, 0.2);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            border: 1px solid var(--accent);
+        }
+
+        /* Animations */
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Print optimization */
+        @media print {
+            body::before {
+                display: none;
+            }
+            .box {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .infographic-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .box-problem,
+            .box-results {
+                grid-column: 1;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .problem-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <div class="logo">CI/CD Build Failure Predictor</div>
+            <div class="subtitle">Predicting Failures Before They Happen</div>
+        </header>
+
+        <!-- Main Infographic -->
+        <div class="infographic-grid">
+            
+            <!-- Problem Box -->
+            <div class="box box-problem">
+                <div class="box-title">
+                    <span class="box-icon">🔴</span>
+                    The Problem: CI/CD Bottleneck
+                </div>
+                <div class="box-content">
+                    <p style="margin-bottom: 1rem;">Modern CI/CD pipelines frequently fail, wasting computational resources and developer time. Teams wait hours only to discover failures that could have been prevented.</p>
+                    <div class="problem-stats">
+                        <div class="stat-card">
+                            <div class="stat-value">Hours</div>
+                            <div class="stat-label">Wasted on Failed Builds</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value">$$$</div>
+                            <div class="stat-label">Cloud Resource Waste</div>
+                        </div>
+                    </div>
+                    <p style="margin-top: 1rem; color: var(--accent); font-weight: 600;">💡 Our Solution: ML-powered prediction to catch failures early.</p>
+                </div>
+            </div>
+
+            <!-- Dataset Box -->
+            <div class="box box-dataset">
+                <div class="box-title">
+                    <span class="box-icon">📊</span>
+                    The Dataset: TravisTorrent
+                </div>
+                <div class="box-content">
+                    <div class="dataset-item">
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Records</div>
+                        <div class="dataset-value">3.7 Million Builds</div>
+                    </div>
+                    <div class="dataset-item">
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Source</div>
+                        <div class="dataset-value">GitHub-native</div>
+                    </div>
+                    <div class="dataset-item">
+                        <div style="color: var(--text-muted); font-size: 0.85rem;">Features</div>
+                        <div class="dataset-value">Commit Patterns, Temporal Data, Author History</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preprocessing Box -->
+            <div class="box box-preprocessing">
+                <div class="box-title">
+                    <span class="box-icon">⚙️</span>
+                    Data Preprocessing & Feature Engineering
+                </div>
+                <div class="box-content">
+                    <div class="preprocess-step">
+                        <div class="step-number">1</div>
+                        <div class="step-text"><strong>Remove Leakage:</strong> Drop test results and post-run metrics unavailable at prediction time</div>
+                    </div>
+                    <div class="preprocess-step">
+                        <div class="step-number">2</div>
+                        <div class="step-text"><strong>Cyclic Encoding:</strong> Hours/days as sine & cosine waves to preserve periodicity</div>
+                    </div>
+                    <div class="preprocess-step">
+                        <div class="step-number">3</div>
+                        <div class="step-text"><strong>Target Encoding:</strong> Categorical variables to maintain predictive power efficiently</div>
+                    </div>
+                    <div class="preprocess-step">
+                        <div class="step-number">4</div>
+                        <div class="step-text"><strong>Normalization:</strong> Min-Max scaling for feature uniformity</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Models Box -->
+            <div class="box box-models">
+                <div class="box-title">
+                    <span class="box-icon">🤖</span>
+                    Models Evaluated
+                </div>
+                <div class="box-content">
+                    <div class="model-item">
+                        <div class="model-name">Logistic Regression</div>
+                        <div class="model-description">Baseline: Fast & interpretable (~76% accuracy)</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">Random Forest</div>
+                        <div class="model-description">Ensemble: Robust but memory intensive (~98% accuracy)</div>
+                    </div>
+                    <div class="model-item">
+                        <div class="model-name">Decision Tree ⭐</div>
+                        <div class="model-description"><strong>Winner:</strong> Best balance of speed & accuracy (~98% baseline)</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Optimization Box -->
+            <div class="box box-optimization">
+                <div class="box-title">
+                    <span class="box-icon">🎯</span>
+                    Hyperparameter Optimization
+                </div>
+                <div class="box-content">
+                    <div class="optimization-detail">
+                        <div class="detail-label">Method</div>
+                        <div class="detail-value">Bayesian Search (Optuna)</div>
+                    </div>
+                    <div class="optimization-detail">
+                        <div class="detail-label">Trials</div>
+                        <div class="detail-value">15 Trials</div>
+                    </div>
+                    <div class="optimization-detail">
+                        <div class="detail-label">Optimized For</div>
+                        <div class="detail-value">max_depth, min_samples_split, criterion</div>
+                    </div>
+                    <p style="margin-top: 1rem; font-size: 0.85rem; color: var(--text-muted);">🎓 More efficient than grid search by learning from previous trials.</p>
+                </div>
+            </div>
+
+            <!-- Results Box -->
+            <div class="box box-results">
+                <div class="result-metric">
+                    <div class="metric-value">94.09%</div>
+                    <div class="metric-label">Accuracy</div>
+                </div>
+                <div class="result-metric">
+                    <div class="metric-value">0.9566</div>
+                    <div class="metric-label">F1-Score</div>
+                </div>
+                <div class="result-metric">
+                    <div class="metric-value">0.9784</div>
+                    <div class="metric-label">ROC-AUC</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-section">
+            <div class="footer-title">🚀 Ready for Production</div>
+            <div class="footer-text">
+                A robust ML pipeline that predicts CI/CD build failures with 94% accuracy, enabling teams to fix issues before they waste resources and kill productivity.
+            </div>
+            <div class="tech-stack">
+                <div class="tech-badge">Python</div>
+                <div class="tech-badge">Scikit-Learn</div>
+                <div class="tech-badge">Optuna</div>
+                <div class="tech-badge">REST API</div>
+                <div class="tech-badge">5-Fold CV</div>
+                <div class="tech-badge">3.7M Samples</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
