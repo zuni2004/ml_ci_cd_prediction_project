@@ -1,33 +1,3 @@
-"""
-DATA PREPROCESSING MODULE - CI/CD Build Failure Predictor
-
-This module contains all preprocessing functions following ML best practices:
-- No data leakage (fit encoders on train set only)
-- Proper handling of identifiers and post-run metrics
-- Target encoding to prevent cardinality explosion
-- Cyclic feature engineering for temporal data
-- Stratified train-test split
-
-Functions:
-    - load_and_clean_data()
-    - handle_null_values()
-    - identify_categorical_features()
-    - classify_categorical_features()
-    - extract_cyclic_features()
-    - train_test_split_with_target_encoding()
-    - encode_categorical_features()
-    - encode_target()
-    - normalize_features()
-    - save_processed_datasets()
-
-Fixes applied vs original:
-    [FIX 1] load_and_clean_data: added tr_log_bool_tests_ran to cols_to_drop
-    [FIX 2] load_and_clean_data: added tr_status (parent col) to cols_to_drop
-    [FIX 3] load_and_clean_data: added tr_log_status + tr_log_analyzer to cols_to_drop
-    [FIX 4] train_test_split_with_target_encoding: LabelEncoder now fits on y_train
-            only, not the full dataset before the split
-"""
-
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder, OrdinalEncoder, MinMaxScaler
@@ -377,17 +347,17 @@ def classify_categorical_features(df, categorical, target="build_successful"):
 
         if col in ordinal_features:
             ordinal.append(col)
-            print(f"\n📊 ORDINAL: {col}")
+            print(f"\nORDINAL: {col}")
             print(f"   Order: {' < '.join(ordinal_features[col])}")
             print(f"   Unique values: {unique}")
         elif unique > 10:
             high_card.append(col)
-            print(f"\n🔴 HIGH CARDINALITY: {col}")
+            print(f"\nHIGH CARDINALITY: {col}")
             print(f"   Unique values: {unique}")
             print(f"   → Will use Target Encoding")
         else:
             low_card.append(col)
-            print(f"\n🟢 LOW CARDINALITY: {col}")
+            print(f"\nLOW CARDINALITY: {col}")
             print(f"   Unique values: {unique}")
             print(f"   → Will use One-Hot Encoding")
 
@@ -485,7 +455,7 @@ def train_test_split_with_target_encoding(
     """
     Split data into train and test sets BEFORE any encoding.
 
-    ⚠️ CRITICAL: All encoders must be fit ONLY on training data.
+    CRITICAL: All encoders must be fit ONLY on training data.
     This function also encodes the target variable (LabelEncoder fit on
     y_train only, then applied to y_test).
 
@@ -558,7 +528,7 @@ def encode_categorical_features(
     """
     Encode categorical features using three strategies.
 
-    ⚠️ CRITICAL: All encoders fit on training data ONLY.
+    CRITICAL: All encoders fit on training data ONLY.
 
     Encoding order matters for the production inference pipeline:
         1. Ordinal  → 2. One-Hot  → 3. Target
@@ -579,7 +549,7 @@ def encode_categorical_features(
     print("=" * 60)
 
     # ── 1. ORDINAL ENCODING ───────────────────────────────────────────────
-    print("\n1️⃣  ORDINAL ENCODING (preserves natural order)")
+    print("\n1️ORDINAL ENCODING (preserves natural order)")
     print("-" * 60)
 
     if ordinal:
@@ -608,7 +578,7 @@ def encode_categorical_features(
         print("  (No ordinal features defined)")
 
     # ── 2. ONE-HOT ENCODING ───────────────────────────────────────────────
-    print("\n2️⃣  ONE-HOT ENCODING (low cardinality, ≤10 unique values)")
+    print("\n2️ONE-HOT ENCODING (low cardinality, ≤10 unique values)")
     print("-" * 60)
 
     if low_card:
@@ -638,7 +608,7 @@ def encode_categorical_features(
         print("  (No low-cardinality features)")
 
     # ── 3. TARGET ENCODING ────────────────────────────────────────────────
-    print("\n3️⃣  TARGET ENCODING (high cardinality, >10 unique values)")
+    print("\n3️TARGET ENCODING (high cardinality, >10 unique values)")
     print("-" * 60)
     print("  Fitting encoder ONLY on training data (prevents leakage)\n")
 
@@ -712,7 +682,7 @@ def normalize_features(X_train, X_test):
     """
     Scale all features to [0, 1] using MinMaxScaler.
 
-    ⚠️ CRITICAL: Scaler is fit ONLY on training data, then applied to test.
+    CRITICAL: Scaler is fit ONLY on training data, then applied to test.
 
     Args:
         X_train, X_test: Feature DataFrames (post-encoding)

@@ -1,26 +1,3 @@
-"""
-MAIN FILE - CI/CD Build Failure Predictor Preprocessing
-
-Orchestrates the full preprocessing pipeline for the Travis CI dataset
-(3.7 M+ builds, 62 raw features).
-
-Target variable : build_successful  (binary: True → 1, False → 0)
-
-Usage
------
-    python main.py
-
-Expected directory layout
---------------------------
-    project/
-    ├── main.py
-    ├── src/
-    │   └── data_preprocessing.py
-    └── data/
-        └── raw_data/
-            └── <your CSV file>
-"""
-
 import sys
 import os
 
@@ -64,9 +41,9 @@ def main():
     print("-" * 80)
 
     if not os.path.exists(INPUT_FILE):
-        print(f"\n❌  File not found: {INPUT_FILE}")
-        print(f"\n📍  Working directory: {os.getcwd()}")
-        print("\n💡  Fix:")
+        print(f"\n  File not found: {INPUT_FILE}")
+        print(f"\n  Working directory: {os.getcwd()}")
+        print("\n  Fix:")
         print(f"    1. Place your CSV at:  {INPUT_FILE}")
         print(f"    2. Or update INPUT_FILE at the top of main.py")
         sys.exit(1)
@@ -80,33 +57,31 @@ def main():
     df = handle_null_values(df)
 
     # ── STEP 3: Identify feature types ────────────────────────────────────────
-    print("\n🏷️   STEP 3: Identifying categorical vs numerical features...")
+    print("\n   STEP 3: Identifying categorical vs numerical features...")
     print("-" * 80)
     categorical, numerical = identify_categorical_features(df)
 
     # ── STEP 4: Classify categorical features ─────────────────────────────────
-    print("\n📊  STEP 4: Classifying categorical features by cardinality...")
+    print("\n  STEP 4: Classifying categorical features by cardinality...")
     print("-" * 80)
     ordinal, low_card, high_card, ordinal_features = classify_categorical_features(
         df, categorical, target=TARGET_COL
     )
 
     # ── STEP 5: Cyclic timestamp features ─────────────────────────────────────
-    print("\n🔄  STEP 5: Extracting cyclic features from timestamps...")
+    print("\n  STEP 5: Extracting cyclic features from timestamps...")
     print("-" * 80)
     df = extract_cyclic_features(df)
 
     # ── STEP 6: Train-test split + encode target ───────────────────────────────
-    print(
-        "\n✂️   STEP 6: Stratified train-test split (LabelEncoder on y_train only)..."
-    )
+    print("\n   STEP 6: Stratified train-test split (LabelEncoder on y_train only)...")
     print("-" * 80)
     X_train, X_test, y_train, y_test = train_test_split_with_target_encoding(
         df, target=TARGET_COL, test_size=TEST_SIZE, random_state=RANDOM_SEED
     )
 
     # ── STEP 7: Encode categorical features ───────────────────────────────────
-    print("\n🔐  STEP 7: Encoding categorical features...")
+    print("\n  STEP 7: Encoding categorical features...")
     print("-" * 80)
     X_train, X_test = encode_categorical_features(
         X_train, X_test, y_train, ordinal, low_card, high_card, ordinal_features
@@ -114,28 +89,28 @@ def main():
 
     # ── STEP 8: Confirm target encoding ───────────────────────────────────────
     # Note: encoding happens in Step 6; this step prints a status summary only.
-    print("\n🎯  STEP 8: Confirming target encoding...")
+    print("\n  STEP 8: Confirming target encoding...")
     print("-" * 80)
     y_train, y_test = encode_target(y_train, y_test)
 
     # ── STEP 9: Normalise features ────────────────────────────────────────────
-    print("\n📏  STEP 9: Normalising features (MinMax → [0, 1])...")
+    print("\n  STEP 9: Normalising features (MinMax → [0, 1])...")
     print("-" * 80)
     X_train, X_test = normalize_features(X_train, X_test)
 
     # ── STEP 10: Save processed data ──────────────────────────────────────────
-    print("\n💾  STEP 10: Saving processed datasets...")
+    print("\n  STEP 10: Saving processed datasets...")
     print("-" * 80)
     save_processed_datasets(X_train, X_test, y_train, y_test)
 
     # ── Final summary ─────────────────────────────────────────────────────────
-    print_header("✅  PREPROCESSING COMPLETE")
+    print_header("  PREPROCESSING COMPLETE")
 
     n_total = X_train.shape[0] + X_test.shape[0]
     train_pct = X_train.shape[0] / n_total * 100
     test_pct = X_test.shape[0] / n_total * 100
 
-    print("\n📊  FINAL STATISTICS")
+    print("\n  FINAL STATISTICS")
     print("-" * 80)
     print(
         f"  Training set  : {X_train.shape[0]:,} rows × {X_train.shape[1]} features  ({train_pct:.1f}%)"
@@ -145,7 +120,7 @@ def main():
     )
     print(f"  Target        : {TARGET_COL}  (0 = failed, 1 = passed)")
 
-    print("\n📁  OUTPUT FILES")
+    print("\n  OUTPUT FILES")
     print("-" * 80)
     output_files = [
         ("data/processed_data/train_processed.csv", "Training features + target"),
@@ -160,7 +135,7 @@ def main():
         print(f"  {mark}  {filepath}")
         print(f"       {description}")
 
-    print("\n🚀  NEXT STEPS")
+    print("\n  NEXT STEPS")
     print("-" * 80)
     print("  1. Train a model on data/processed_data/train_processed.csv")
     print("     Recommended: XGBoost, LightGBM, or Random Forest")
@@ -171,7 +146,7 @@ def main():
         "       LabelEncoder (target) → OrdinalEncoder → OneHot → TargetEncoder → MinMaxScaler"
     )
 
-    print("\n⚠️   WHAT WAS DROPPED (post-run / leaky columns)")
+    print("\n   WHAT WAS DROPPED (post-run / leaky columns)")
     print("-" * 80)
     print("  Identifiers  : tr_build_id, tr_job_id, tr_build_number, git hashes")
     print("  Post-run     : tr_duration, tr_log_* test counts, tr_log_bool_tests_ran")
@@ -189,16 +164,16 @@ if __name__ == "__main__":
     try:
         main()
     except FileNotFoundError as exc:
-        print(f"\n❌  FILE NOT FOUND: {exc}")
+        print(f"\n  FILE NOT FOUND: {exc}")
         print("    Check that your CSV exists and INPUT_FILE is correct.")
         sys.exit(1)
     except KeyError as exc:
-        print(f"\n❌  COLUMN NOT FOUND: {exc}")
+        print(f"\n  COLUMN NOT FOUND: {exc}")
         print(f"    Expected target column: '{TARGET_COL}'")
         print("    Check column names in your CSV.")
         sys.exit(1)
     except Exception as exc:
-        print(f"\n❌  UNEXPECTED ERROR: {exc}")
+        print(f"\n  UNEXPECTED ERROR: {exc}")
         print("\nDebugging checklist:")
         print("  • CSV is not corrupted")
         print("  • Required libraries installed: pandas, scikit-learn, joblib, numpy")
