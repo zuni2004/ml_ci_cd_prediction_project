@@ -41,8 +41,8 @@ warnings.filterwarnings("ignore")
 # ════════════════════════════════════════════════════════════════════════════
 
 CONFIG = {
-    "train_file": "src/train_processed.csv",
-    "test_file": "src/test_processed.csv",
+    "train_file": "data/processed_data/train_processed.csv",
+    "test_file": "data/processed_data/test_processed.csv",
     "target_col": "build_successful",
     "test_size": 0.20,
     "random_seed": 42,

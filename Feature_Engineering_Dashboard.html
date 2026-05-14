@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Engineering Analysis Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-dark: #0a0e27;
+            --bg-card: #141829;
+            --bg-hover: #1a1f3a;
+            --text-primary: #e8eaf6;
+            --text-secondary: #b0b9d4;
+            --text-muted: #7c86a8;
+            --accent-blue: #5b7cfa;
+            --accent-green: #51cf66;
+            --accent-orange: #ffa94d;
+            --accent-red: #ff6b6b;
+            --border: #2a2f4a;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-dark) 0%, #0f1333 100%);
+            color: var(--text-primary);
+            font-family: 'Syne', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(10, 14, 39, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border);
+            padding: 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1rem;
+            font-weight: 400;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-box {
+            background: rgba(91, 124, 250, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .stat-box:hover {
+            background: rgba(91, 124, 250, 0.15);
+            border-color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--accent-blue);
+            font-family: 'Space Mono', monospace;
+        }
+
+        .stat-label {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+        }
+
+        button.active {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+            color: white;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+            gap: 1.5rem;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--bg-card) 0%, rgba(20, 24, 41, 0.8) 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, currentColor, transparent);
+        }
+
+        .feature-card.retained {
+            color: var(--accent-blue);
+            border-color: rgba(91, 124, 250, 0.3);
+        }
+
+        .feature-card.engineered {
+            color: var(--accent-green);
+            border-color: rgba(81, 207, 102, 0.3);
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: currentColor;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-header {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            justify-content: space-between;
+        }
+
+        .feature-name {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            word-break: break-all;
+            flex: 1;
+        }
+
+        .feature-badge {
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .feature-card.retained .feature-badge {
+            background: rgba(91, 124, 250, 0.2);
+            color: var(--accent-blue);
+        }
+
+        .feature-card.engineered .feature-badge {
+            background: rgba(81, 207, 102, 0.2);
+            color: var(--accent-green);
+        }
+
+        .feature-info {
+            display: grid;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .info-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            font-family: 'Space Mono', monospace;
+        }
+
+        .engineering-method {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid currentColor;
+            padding: 1rem;
+            border-radius: 6px;
+            margin-top: 1rem;
+        }
+
+        .engineering-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .engineering-description {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .parent-feature {
+            display: inline-block;
+            background: rgba(255, 170, 77, 0.15);
+            border: 1px solid rgba(255, 170, 77, 0.3);
+            color: var(--accent-orange);
+            padding: 0.3rem 0.8rem;
+            border-radius: 4px;
+            font-family: 'Space Mono', monospace;
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin: 3rem 0 1.5rem;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 30px;
+            background: currentColor;
+            border-radius: 2px;
+        }
+
+        .retained-section {
+            color: var(--accent-blue);
+        }
+
+        .engineered-section {
+            color: var(--accent-green);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state p {
+            font-size: 1.1rem;
+        }
+
+        footer {
+            background: rgba(10, 14, 39, 0.8);
+            border-top: 1px solid var(--border);
+            padding: 2rem;
+            margin-top: 4rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: rgba(91, 124, 250, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .legend-icon {
+            width: 3px;
+            height: 24px;
+            border-radius: 2px;
+            margin-top: 2px;
+        }
+
+        .legend-item.retained .legend-icon {
+            background: var(--accent-blue);
+        }
+
+        .legend-item.engineered .legend-icon {
+            background: var(--accent-green);
+        }
+
+        .legend-content h4 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--text-primary);
+        }
+
+        .legend-content p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        @media (max-width: 768px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .header-content {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Feature Engineering Analysis</h1>
+            <p class="subtitle">CI/CD Build Failure Prediction — Comprehensive feature breakdown</p>
+            
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="stat-number">62</div>
+                    <div class="stat-label">Raw Features</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">22</div>
+                    <div class="stat-label">Retained</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">23</div>
+                    <div class="stat-label">Engineered</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-number">18</div>
+                    <div class="stat-label">Dropped</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="legend">
+            <div class="legend-item retained">
+                <div class="legend-icon"></div>
+                <div class="legend-content">
+                    <h4>Retained Features</h4>
+                    <p>Features kept as-is, no transformation applied</p>
+                </div>
+            </div>
+            <div class="legend-item engineered">
+                <div class="legend-icon"></div>
+                <div class="legend-content">
+                    <h4>Engineered Features</h4>
+                    <p>Features created or transformed from raw data</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="filter-btn active" onclick="filterFeatures('all')">All Features</button>
+            <button class="filter-btn" onclick="filterFeatures('retained')">Retained (22)</button>
+            <button class="filter-btn" onclick="filterFeatures('engineered')">Engineered (23)</button>
+        </div>
+
+        <div id="featuresContainer"></div>
+    </div>
+
+    <footer>
+        <p>Generated for CI/CD Build Prediction Model | Feature Engineering Pipeline Analysis</p>
+    </footer>
+
+    <script>
+        const features = {
+            retained: [
+                {
+                    name: 'gh_is_pr',
+                    type: 'Binary',
+                    description: 'Indicates if this is a pull request (1) or direct push (0)'
+                },
+                {
+                    name: 'gh_team_size',
+                    type: 'Numerical',
+                    description: 'Number of developers in the team'
+                },
+                {
+                    name: 'gh_by_core_team_member',
+                    type: 'Binary',
+                    description: 'Whether the commit was made by a core team member'
+                },
+                {
+                    name: 'gh_num_commits_in_push',
+                    type: 'Numerical',
+                    description: 'Number of commits included in this push'
+                },
+                {
+                    name: 'git_num_all_built_commits',
+                    type: 'Numerical',
+                    description: 'Total commits built on this branch'
+                },
+                {
+                    name: 'gh_num_commits_on_files_touched',
+                    type: 'Numerical',
+                    description: 'Count of commits affecting the modified files'
+                },
+                {
+                    name: 'git_diff_src_churn',
+                    type: 'Numerical',
+                    description: 'Source code lines added and removed'
+                },
+                {
+                    name: 'git_diff_test_churn',
+                    type: 'Numerical',
+                    description: 'Test code lines added and removed'
+                },
+                {
+                    name: 'gh_diff_files_added',
+                    type: 'Numerical',
+                    description: 'Number of new files added'
+                },
+                {
+                    name: 'gh_diff_files_deleted',
+                    type: 'Numerical',
+                    description: 'Number of files deleted'
+                },
+                {
+                    name: 'gh_diff_files_modified',
+                    type: 'Numerical',
+                    description: 'Number of files modified'
+                },
+                {
+                    name: 'gh_diff_src_files',
+                    type: 'Numerical',
+                    description: 'Source code files changed'
+                },
+                {
+                    name: 'gh_diff_doc_files',
+                    type: 'Numerical',
+                    description: 'Documentation files changed'
+                },
+                {
+                    name: 'gh_diff_other_files',
+                    type: 'Numerical',
+                    description: 'Other file types changed'
+                },
+                {
+                    name: 'gh_diff_tests_added',
+                    type: 'Numerical',
+                    description: 'New test cases or test files added'
+                },
+                {
+                    name: 'gh_diff_tests_deleted',
+                    type: 'Numerical',
+                    description: 'Test cases or test files removed'
+                },
+                {
+                    name: 'gh_sloc',
+                    type: 'Numerical',
+                    description: 'Source lines of code in the project'
+                },
+                {
+                    name: 'gh_test_lines_per_kloc',
+                    type: 'Numerical',
+                    description: 'Test code lines per 1000 lines of code'
+                },
+                {
+                    name: 'gh_test_cases_per_kloc',
+                    type: 'Numerical',
+                    description: 'Number of test cases per 1000 LOC'
+                },
+                {
+                    name: 'gh_asserts_cases_per_kloc',
+                    type: 'Numerical',
+                    description: 'Number of assertions per 1000 LOC'
+                },
+                {
+                    name: 'gh_num_commit_comments',
+                    type: 'Numerical',
+                    description: 'Number of comments on the commit'
+                },
+                {
+                    name: 'build_successful',
+                    type: 'Target (Binary)',
+                    description: 'Build outcome: 1 = success, 0 = failure'
+                }
+            ],
+            engineered: [
+                {
+                    name: 'gh_first_commit_created_at_hour_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied sine transformation to hour component: sin(2π × hour / 24). Captures circular nature of 24-hour clock.'
+                },
+                {
+                    name: 'gh_first_commit_created_at_hour_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied cosine transformation to hour component: cos(2π × hour / 24). Paired with sin for 2D representation.'
+                },
+                {
+                    name: 'gh_first_commit_created_at_day_of_week_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied sine transformation to day of week: sin(2π × day / 7). Sunday (day 6) is close to Monday (day 0).'
+                },
+                {
+                    name: 'gh_first_commit_created_at_day_of_week_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied cosine transformation to day of week: cos(2π × day / 7). Preserves circular structure.'
+                },
+                {
+                    name: 'gh_first_commit_created_at_month_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied sine transformation to month: sin(2π × month / 12). December (12) is close to January (1).'
+                },
+                {
+                    name: 'gh_first_commit_created_at_month_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied cosine transformation to month: cos(2π × month / 12). Preserves seasonal circularity.'
+                },
+                {
+                    name: 'gh_first_commit_created_at_day_of_month_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied sine transformation to day of month: sin(2π × day / 31). Handles day-of-month cyclicity.'
+                },
+                {
+                    name: 'gh_first_commit_created_at_day_of_month_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_first_commit_created_at',
+                    engineering: 'Applied cosine transformation to day of month: cos(2π × day / 31). Paired for 2D representation.'
+                },
+                {
+                    name: 'gh_pushed_at_hour_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied sine transformation to push hour: sin(2π × hour / 24). Captures when code was pushed.'
+                },
+                {
+                    name: 'gh_pushed_at_hour_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied cosine transformation to push hour: cos(2π × hour / 24). Complements sine for complete hourly cycle.'
+                },
+                {
+                    name: 'gh_pushed_at_day_of_week_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied sine transformation to push day of week: sin(2π × day / 7). Weekday vs weekend pattern.'
+                },
+                {
+                    name: 'gh_pushed_at_day_of_week_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied cosine transformation to push day of week: cos(2π × day / 7). Preserves weekly cycle.'
+                },
+                {
+                    name: 'gh_pushed_at_month_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied sine transformation to push month: sin(2π × month / 12). Captures seasonal push patterns.'
+                },
+                {
+                    name: 'gh_pushed_at_month_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied cosine transformation to push month: cos(2π × month / 12). Represents monthly seasonality.'
+                },
+                {
+                    name: 'gh_pushed_at_day_of_month_sin',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied sine transformation to push day of month: sin(2π × day / 31). Captures intra-month patterns.'
+                },
+                {
+                    name: 'gh_pushed_at_day_of_month_cos',
+                    type: 'Cyclic Feature',
+                    parent: 'gh_pushed_at',
+                    engineering: 'Applied cosine transformation to push day of month: cos(2π × day / 31). Represents day-of-month cycle.'
+                },
+                {
+                    name: 'gh_lang_java',
+                    type: 'One-Hot Encoded',
+                    parent: 'gh_lang',
+                    engineering: 'One-hot encoding of programming language. Binary feature: 1 if project uses Java, 0 otherwise.'
+                },
+                {
+                    name: 'gh_lang_javascript',
+                    type: 'One-Hot Encoded',
+                    parent: 'gh_lang',
+                    engineering: 'One-hot encoding of programming language. Binary feature: 1 if project uses JavaScript, 0 otherwise.'
+                },
+                {
+                    name: 'gh_lang_ruby',
+                    type: 'One-Hot Encoded',
+                    parent: 'gh_lang',
+                    engineering: 'One-hot encoding of programming language. Binary feature: 1 if project uses Ruby, 0 otherwise.'
+                },
+                {
+                    name: 'gh_project_name',
+                    type: 'Target Encoded',
+                    parent: 'gh_project_name (categorical)',
+                    engineering: 'Target encoding: replaced project name with mean build success rate for each project. Handles high cardinality (100s of projects) without feature explosion. Fit on training data only to prevent leakage.'
+                },
+                {
+                    name: 'git_branch',
+                    type: 'Target Encoded',
+                    parent: 'git_branch (categorical)',
+                    engineering: 'Target encoding: replaced branch name with mean build success rate for each branch. Compresses potentially many branch variations into single numerical feature. Prevents one-hot explosion.'
+                },
+                {
+                    name: 'tr_log_lan',
+                    type: 'Target Encoded',
+                    parent: 'tr_log_lan (categorical)',
+                    engineering: 'Target encoding: replaced language identifier with mean build success rate. Handles categorical language information while preserving predictive signal.'
+                },
+                {
+                    name: 'tr_log_frameworks',
+                    type: 'Target Encoded',
+                    parent: 'tr_log_frameworks (categorical)',
+                    engineering: 'Target encoding: replaced frameworks field with mean build success rate. Compresses framework diversity into predictive numerical feature.'
+                }
+            ]
+        };
+
+        let currentFilter = 'all';
+
+        function renderFeatures() {
+            const container = document.getElementById('featuresContainer');
+            container.innerHTML = '';
+
+            let toDisplay = [];
+            if (currentFilter === 'all') {
+                toDisplay = [
+                    { title: 'Retained Features', section: 'retained', type: 'retained' },
+                    { title: 'Engineered Features', section: 'engineered', type: 'engineered' }
+                ];
+            } else {
+                toDisplay = [
+                    { title: currentFilter === 'retained' ? 'Retained Features' : 'Engineered Features', 
+                      section: currentFilter, 
+                      type: currentFilter }
+                ];
+            }
+
+            toDisplay.forEach(section => {
+                const title = document.createElement('div');
+                title.className = `section-title ${section.type}-section`;
+                title.textContent = section.title;
+                container.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'features-grid';
+
+                features[section.section].forEach(feat => {
+                    const card = document.createElement('div');
+                    card.className = `feature-card ${section.type}`;
+
+                    let html = `
+                        <div class="feature-header">
+                            <div class="feature-name">${feat.name}</div>
+                            <div class="feature-badge">${section.type}</div>
+                        </div>
+                        <div class="feature-info">
+                            <div class="info-item">
+                                <span class="info-label">Feature Type</span>
+                                <span class="info-value">${feat.type}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Description</span>
+                                <span class="info-value">${feat.description || ''}</span>
+                            </div>
+                    `;
+
+                    if (feat.parent) {
+                        html += `
+                            <div class="info-item">
+                                <span class="info-label">Source Feature</span>
+                                <span class="parent-feature">${feat.parent}</span>
+                            </div>
+                        `;
+                    }
+
+                    if (feat.engineering) {
+                        html += `
+                            <div class="engineering-method">
+                                <div class="engineering-label">Engineering Method</div>
+                                <div class="engineering-description">${feat.engineering}</div>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    card.innerHTML = html;
+                    grid.appendChild(card);
+                });
+
+                container.appendChild(grid);
+            });
+        }
+
+        window.filterFeatures = function(filter) {
+            currentFilter = filter;
+            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderFeatures();
+        };
+
+        // Initial render
+        renderFeatures();
+    </script>
+</body>
+</html>

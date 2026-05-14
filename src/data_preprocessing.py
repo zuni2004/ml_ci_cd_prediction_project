@@ -89,7 +89,7 @@ def load_and_clean_data(file_path, target_col="build_successful"):
     - Post-Run Metrics: Metrics only available AFTER execution
     - Sparse Features: Columns with too many unique values
 
-    ⚠️ IMPORTANT: Only use features available BEFORE the pipeline executes
+     IMPORTANT: Only use features available BEFORE the pipeline executes
     to prevent data leakage in production.
 
     Args:
